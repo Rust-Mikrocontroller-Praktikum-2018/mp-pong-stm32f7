@@ -2,11 +2,11 @@
 #![no_main]
 #![feature(compiler_builtins_lib)]
 
-extern crate stm32f7_discovery as stm32f7;
 extern crate compiler_builtins;
 extern crate r0;
+extern crate stm32f7_discovery as stm32f7;
 
-use stm32f7::{system_clock, board, embedded};
+use stm32f7::{board, embedded, system_clock};
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -40,20 +40,43 @@ pub unsafe extern "C" fn reset() -> ! {
 }
 
 fn main(hw: board::Hardware) -> ! {
-
     let board::Hardware {
-        rcc,
-        pwr,
-        flash,
-        ..
+        rcc, pwr, flash, ..
     } = hw;
-
-    
 
     system_clock::init(rcc, pwr, flash);
 
-    
+    /*
+// high level
+
+    println!("Hello, world!");
+
+    let is_server = false;
+
     loop {
-        
+        if is_server {
+            server_loop();
+        }
+
+        game_loop();
     }
+}
+
+fn server_loop() {
+    receive_input_from_clients();
+    game_update();
+    send_state_to_clients();
+}
+
+
+fn game_loop() {
+    receive_state_from_server();
+    read_input();
+    send_input_to_server();
+    draw_stuff();
+}
+    
+    */
+
+    loop {}
 }
