@@ -120,13 +120,13 @@ impl Framebuffer for FramebufferArgb8888 {
             dest_start_ptr = LAYER_1_START as *mut u32;
         }
         
-        unsafe {
+        /*unsafe {
             ptr::copy_nonoverlapping(
                 src_start_ptr,
                 dest_start_ptr,
                 WIDTH * HEIGHT
             );
-        } 
+        } */
     }
 }
 

@@ -117,7 +117,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     });
 
     // configure color frame buffer start address
-    ltdc.l1cfbar.update(|r| r.set_cfbadd(LAYER_1_START as u32));
+   // ltdc.l1cfbar.update(|r| r.set_cfbadd(LAYER_1_START as u32)); // don't draw in waiting time
 
     // configure color frame buffer line length and pitch
     ltdc.l1cfblr.update(|r| {
