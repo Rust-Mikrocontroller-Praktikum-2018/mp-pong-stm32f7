@@ -112,8 +112,11 @@ fn main(hw: board::Hardware) -> ! {
 
     touch::check_family_id(&mut i2c_3).unwrap();
 
+    // clear both buffers
     layer1.clear();
+/*    layer1.swap_buffers();
     layer1.clear();
+    layer1.swap_buffers(); // go back to first buffer*/
 
     let red = lcd::Color {
         red: 255,
@@ -140,7 +143,7 @@ fn main(hw: board::Hardware) -> ! {
     let mut current_color = &red;
 
     lcd.swap_buffers();
-    
+
     loop {
         for touch in &touch::touches(&mut i2c_3).unwrap() {
             layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
@@ -155,6 +158,7 @@ fn main(hw: board::Hardware) -> ! {
 
         }
         lcd.swap_buffers();
+        layer1.swap_buffers();
     }
 /*
 

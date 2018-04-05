@@ -39,12 +39,11 @@ impl Lcd {
             None
         } else {
             Some(Layer {
-                framebuffer: FramebufferArgb8888::new(LAYER_1_START),
+                framebuffer: FramebufferArgb8888::new(LAYER_1_START, LAYER_1_START_2),
             })
         }
     }
     pub fn swap_buffers(&mut self) {
-        self.use_buffer_2 = !self.use_buffer_2;
         if self.use_buffer_2 {
             self.controller
                 .l1cfbar
@@ -64,33 +63,70 @@ impl Lcd {
         // configure frame buffer line number
         self.controller.l1cfblnr.update(|r| r.set_cfblnbr(HEIGHT as u16)); // line_number
 
-        // enable layers
-        self.controller.l1cr.update(|r| r.set_len(true));
-
         // reload shadow registers
         self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
+
+        self.use_buffer_2 = !self.use_buffer_2;
     }
 }
 
 pub trait Framebuffer {
     fn set_pixel(&mut self, x: usize, y: usize, color: Color);
+    fn swap_buffers(&mut self);
 }
 
 pub struct FramebufferArgb8888 {
     base_addr: usize,
+    base_addr2: usize,
+    use_buffer_2: bool,
 }
 
 impl FramebufferArgb8888 {
-    fn new(base_addr: usize) -> Self {
-        Self { base_addr }
+    fn new(base_addr: usize, base_addr2: usize) -> Self {
+        let use_buffer_2 = false;
+        Self {
+            base_addr,
+            base_addr2,
+            use_buffer_2,
+        }
+    }
+
+    fn current_base_addr(&mut self) -> usize {
+        if self.use_buffer_2 {
+            self.base_addr2
+        } else {
+            self.base_addr
+        }
     }
 }
 
 impl Framebuffer for FramebufferArgb8888 {
     fn set_pixel(&mut self, x: usize, y: usize, color: Color) {
         let pixel = y * WIDTH + x;
-        let pixel_ptr = (self.base_addr + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
+        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
         unsafe { ptr::write_volatile(pixel_ptr, color.to_argb8888()) };
+    }
+
+    fn swap_buffers(&mut self) {
+        self.use_buffer_2 = !self.use_buffer_2;
+        let src_start_ptr;
+        let dest_start_ptr;
+
+        if self.use_buffer_2 {
+            src_start_ptr = LAYER_1_START as *mut u32;
+            dest_start_ptr = LAYER_1_START_2 as *mut u32;
+        } else {
+            src_start_ptr = LAYER_1_START_2 as *mut u32;
+            dest_start_ptr = LAYER_1_START as *mut u32;
+        }
+        
+        unsafe {
+            ptr::copy_nonoverlapping(
+                src_start_ptr,
+                dest_start_ptr,
+                WIDTH * HEIGHT
+            );
+        } 
     }
 }
 
@@ -150,5 +186,9 @@ impl<T: Framebuffer> Layer<T> {
         assert!(y < HEIGHT);
 
         self.framebuffer.set_pixel(x, y, color);
+    }
+
+    pub fn swap_buffers(&mut self) {
+        self.framebuffer.swap_buffers();
     }
 }
