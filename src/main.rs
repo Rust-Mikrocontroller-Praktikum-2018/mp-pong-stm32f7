@@ -4,11 +4,14 @@
 
 extern crate compiler_builtins;
 extern crate r0;
+#[macro_use] // To get the hprintf! macro from semi-hosting
 extern crate stm32f7_discovery as stm32f7;
 
 use embedded::interfaces::gpio::Gpio;
 use stm32f7::{board, embedded, sdram, system_clock, touch, i2c};
 mod lcd; // use custom LCD implementation
+
+mod fps;
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -118,6 +121,9 @@ fn main(hw: board::Hardware) -> ! {
     layer1.clear();
     layer1.swap_buffers(); // go back to first buffer
 
+    //// INIT COMPLETE ////
+    let mut fps = fps::init();
+
     let red = lcd::Color {
         red: 255,
         green: 0,
@@ -148,10 +154,11 @@ fn main(hw: board::Hardware) -> ! {
     let mut running_y = 0;
 
     loop {
-
-        draw(&mut layer1, &running_x, &running_y, current_color);
+        //draw(&mut layer1, &running_x, &running_y, current_color);
         logic(&mut running_x, &mut running_y);
         draw(&mut layer1, &running_x, &running_y, current_color);
+
+        draw_fps(&mut layer1, &mut fps);
 
         for touch in &touch::touches(&mut i2c_3).unwrap() {
             layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
@@ -163,18 +170,89 @@ fn main(hw: board::Hardware) -> ! {
             } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
                 current_color = &blue;
             }
-
         }
         lcd.swap_buffers();
         layer1.swap_buffers();
+        fps.count_frame();
     }
 }
 
-fn draw(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, running_x: &usize, running_y: &usize, current_color: &lcd::Color) {
-    layer1.print_point_color_at(*running_x, *running_y, *current_color);
+fn draw(
+    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    running_x: &usize,
+    running_y: &usize,
+    current_color: &lcd::Color,
+) {
+    for _x in 0..1000 {
+        layer1.print_point_color_at(*running_x, *running_y, *current_color);
+    }
 }
 
+fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, fps: &mut fps::FpsCounter) {
+    let mut number = fps.last_fps;
+    if number > 99 {
+        number = 99;
+    }
+    draw_number(layer1, 0, 0, number / 10);
+    draw_number(layer1, 5, 0, number
+     % 10);
+}
+fn draw_number(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, x: usize, y: usize, number: usize) {
+    if number == 0 {
+        draw_seven_segment(layer1, x, y, true, true, true, false, true, true, true);
+    } else if number == 1 {
+        draw_seven_segment(layer1, x, y, false, false, true, false, false, true, false);
+    } else if number == 2 {
+        draw_seven_segment(layer1, x, y, true, false, true, true, true, false, true);
+    } else if number == 3 {
+        draw_seven_segment(layer1, x, y, true, false, true, true, false, true, true);
+    } else if number == 4 {
+        draw_seven_segment(layer1, x, y, false, true, true, true, false, true, false);
+    } else if number == 5 {
+        draw_seven_segment(layer1, x, y, true, true, false, true, false, true, true);
+    } else if number == 6 {
+        draw_seven_segment(layer1, x, y, true, true, false, true, true, true, true);
+    } else if number == 7 {
+        draw_seven_segment(layer1, x, y, true, false, true, false, false, true, false);
+    } else if number == 8 {
+        draw_seven_segment(layer1, x, y, true, true, true, true, true, true, true);
+    } else if number == 9 {
+        draw_seven_segment(layer1, x, y, true, true, true, true, false, true, true);
+    }
+}
+fn draw_seven_segment(
+    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    x: usize,
+    y: usize,
+    top: bool,
+    top_left: bool,
+    top_right: bool,
+    center: bool,
+    bottom_left: bool,
+    bottom_right: bool,
+    bottom: bool,
+) {
+    let black = lcd::Color::rgb(0, 0, 0);
+    let white = lcd::Color::rgb(255, 255, 255);
+    layer1.print_point_color_at(x+0, y+0, if top { white } else { black });
+    layer1.print_point_color_at(x+1, y+0, if top { white } else { black });
+    layer1.print_point_color_at(x+2, y+0, if top { white } else { black });
+    layer1.print_point_color_at(x+0, y+1, if top_left { white } else { black });
+    layer1.print_point_color_at(x+2, y+1, if top_right { white } else { black });
+    layer1.print_point_color_at(x+0, y+2, if top_left { white } else { black });
+    layer1.print_point_color_at(x+2, y+2, if top_right { white } else { black });
+    layer1.print_point_color_at(x+0, y+3, if center { white } else { black });
+    layer1.print_point_color_at(x+1, y+3, if center { white } else { black });
+    layer1.print_point_color_at(x+2, y+3, if center { white } else { black });
+    layer1.print_point_color_at(x+0, y+4, if bottom_left { white } else { black });
+    layer1.print_point_color_at(x+2, y+4, if bottom_right { white } else { black });
+    layer1.print_point_color_at(x+0, y+5, if bottom_left { white } else { black });
+    layer1.print_point_color_at(x+2, y+5, if bottom_right { white } else { black });
+    layer1.print_point_color_at(x+0, y+6, if bottom { white } else { black });
+    layer1.print_point_color_at(x+1, y+6, if bottom { white } else { black });
+    layer1.print_point_color_at(x+2, y+6, if bottom { white } else { black });
 
+}
 
 fn logic(running_x: &mut usize, running_y: &mut usize) {
     *running_x += 1;

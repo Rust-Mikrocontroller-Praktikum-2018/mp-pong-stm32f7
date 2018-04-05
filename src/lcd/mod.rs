@@ -19,7 +19,7 @@ const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
 
 const SDRAM_START: usize = 0xC000_0000;
 const LAYER_1_START: usize = SDRAM_START;
-const LAYER_1_START_2: usize = LAYER_1_START + WIDTH * HEIGHT * LAYER_1_OCTETS_PER_PIXEL;
+const LAYER_1_START_2: usize = SDRAM_START +  1024 * 1024 * 4; // move backbuffer to second SDRAM bank
 
 pub struct Lcd {
     controller: &'static mut Ltdc,
@@ -53,16 +53,7 @@ impl Lcd {
                 .l1cfbar
                 .update(|r| r.set_cfbadd(LAYER_1_START as u32));
         }
-
-        // configure color frame buffer line length and pitch
-        self.controller.l1cfblr.update(|r| {
-            r.set_cfbp((WIDTH * LAYER_1_OCTETS_PER_PIXEL) as u16); // pitch
-            r.set_cfbll((WIDTH * LAYER_1_OCTETS_PER_PIXEL + 3) as u16); // line_length
-        });
-
-        // configure frame buffer line number
-        self.controller.l1cfblnr.update(|r| r.set_cfblnbr(HEIGHT as u16)); // line_number
-
+        
         // reload shadow registers
         self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
 
@@ -120,13 +111,13 @@ impl Framebuffer for FramebufferArgb8888 {
             dest_start_ptr = LAYER_1_START as *mut u32;
         }
         
-        /*unsafe {
+        unsafe {
             ptr::copy_nonoverlapping(
                 src_start_ptr,
                 dest_start_ptr,
                 WIDTH * HEIGHT
             );
-        } */
+        } 
     }
 }
 
