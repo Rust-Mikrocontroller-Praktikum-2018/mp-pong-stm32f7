@@ -7,7 +7,8 @@ extern crate r0;
 extern crate stm32f7_discovery as stm32f7;
 
 use embedded::interfaces::gpio::Gpio;
-use stm32f7::{board, embedded, lcd, sdram, system_clock, touch, i2c};
+use stm32f7::{board, embedded, sdram, system_clock, touch, i2c};
+mod lcd; // use custom LCD implementation
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -104,8 +105,6 @@ fn main(hw: board::Hardware) -> ! {
         alpha: 255,
     });
     let mut layer1 = lcd.layer_1().unwrap();
-    let mut layer2 = lcd.layer_2().unwrap();
-
 
     // init touch screen
     i2c::init_pins_and_clocks(rcc, &mut gpio);
@@ -113,11 +112,53 @@ fn main(hw: board::Hardware) -> ! {
 
     touch::check_family_id(&mut i2c_3).unwrap();
 
-
-    layer2.clear();
     layer1.clear();
     layer1.clear();
 
+    let red = lcd::Color {
+        red: 255,
+        green: 0,
+        blue: 0,
+        alpha: 255,
+    };
+    let green = lcd::Color {
+        red: 0,
+        green: 255,
+        blue: 0,
+        alpha: 255,
+    };
+    let blue = lcd::Color {
+        red: 0,
+        green: 0,
+        blue: 255,
+        alpha: 255,
+    };
+    quad(30, 1 + 30, 50, &red, &mut layer1);
+    quad(30, 1 + 30 + 80, 50, &green, &mut layer1);
+    quad(30, 1 + 30 + 80 + 80, 50, &blue, &mut layer1);
+
+    let mut current_color = &red;
+
+    lcd.swap_buffers();
+    
+    loop {
+        for touch in &touch::touches(&mut i2c_3).unwrap() {
+            layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
+
+            if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
+                current_color = &red;
+            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
+                current_color = &green;
+            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
+                current_color = &blue;
+            }
+
+        }
+        lcd.swap_buffers();
+    }
+/*
+
+    loop {}
     let lookup = [
         136, 137, 139, 141, 143, 144, 146, 148, 150, 151, 153, 155, 157, 158, 160, 162, 164, 165,
         167, 169, 171, 172, 174, 176, 177, 179, 181, 182, 184, 186, 187, 189, 191, 192, 194, 195,
@@ -152,7 +193,7 @@ fn main(hw: board::Hardware) -> ! {
 
     for x in 0..end {
         layer1.print_point_at(x, lookup[x]);
-    }
+    }*/
 
     /*    let mut rect = |x: usize, y: usize, width: usize, height: usize, color: &lcd::Color| {
         for x in x..x + width {
@@ -161,28 +202,7 @@ fn main(hw: board::Hardware) -> ! {
             }
         }
     };*/
-
-    let mut quad = |x: usize, y: usize, size: usize, color: &lcd::Color| {
-        for x in x..x + size {
-            for y in y..y + size {
-                layer1.print_point_color_at(x, y, *color);
-            }
-        }
-    };
-
-    let red = lcd::Color {
-        red: 255,
-        green: 0,
-        blue: 0,
-        alpha: 255,
-    };
-    let blue = lcd::Color {
-        red: 0,
-        green: 0,
-        blue: 255,
-        alpha: 255,
-    };
-
+    /*
     let mut step = 5;
 
     loop {
@@ -194,9 +214,9 @@ fn main(hw: board::Hardware) -> ! {
 
         loop {
             if color_blue {
-                quad(x, y, width as usize, &red);
+                quad(x, y, width as usize, &red, &layer1);
             } else {
-                quad(x, y, width as usize, &blue);
+                quad(x, y, width as usize, &blue, &layer1);
             }
             color_blue = !color_blue;
             x += step;
@@ -208,7 +228,7 @@ fn main(hw: board::Hardware) -> ! {
         }
         step -= 1;
     }
-
+*/
     /*
 
     quad(0, 0, 200, 200, );*/
@@ -245,3 +265,28 @@ fn game_loop() {
 }
     
     */
+
+fn in_rect(
+    pos_x: usize,
+    pos_y: usize,
+    rect_x: usize,
+    rect_y: usize,
+    rect_width: usize,
+    rect_height: usize,
+) -> bool {
+    pos_x > rect_x && pos_y > rect_y && pos_x < rect_x + rect_width && pos_y < rect_y + rect_height
+}
+
+fn quad(
+    x: usize,
+    y: usize,
+    size: usize,
+    color: &lcd::Color,
+    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+) {
+    for x in x..x + size {
+        for y in y..y + size {
+            layer1.print_point_color_at(x, y, *color);
+        }
+    }
+}
