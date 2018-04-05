@@ -1,0 +1,4 @@
+[[package]]
+name = "mp-pong-stm32f7"
+version = "0.1.0"
+
