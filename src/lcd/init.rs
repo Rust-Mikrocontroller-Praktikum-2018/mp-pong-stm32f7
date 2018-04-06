@@ -82,7 +82,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
 
     // set the line the interrupt should happen on
     ltdc.lipcr.update(|r| {
-        r.set_lipos(60);
+        r.set_lipos(HEIGHT);
     });
 
     // enable LTDC
@@ -103,7 +103,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     });
 
     // specify pixed format
-    ltdc.l1pfcr.update(|r| r.set_pf(0b000)); // set_pixel_format to ARGB8888
+    ltdc.l1pfcr.update(|r| r.set_pf(0b101)); // set_pixel_format to L8
 
     // configure default color values
     ltdc.l1dccr.update(|r| {
@@ -113,14 +113,6 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
         r.set_dcblue(0);
     });
 
-    // specify constant alpha value
-    ltdc.l1cacr.update(|r| r.set_consta(255)); // constant_alpha
-
-    // specify blending factors
-    ltdc.l1bfcr.update(|r| {
-        r.set_bf1(0b110); // set_blending_factor_1 to PixelAlphaTimesConstantAlpha
-        r.set_bf2(0b111); // set_blending_factor_2 to OneMinusPixelAlphaTimesConstantAlpha
-    });
 
     // configure color frame buffer start address
    // ltdc.l1cfbar.update(|r| r.set_cfbadd(LAYER_1_START as u32)); // don't draw in waiting time

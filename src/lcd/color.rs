@@ -60,6 +60,10 @@ impl Color {
             (u16::from(self.green) & 0xf8) << 2 | (u16::from(self.blue) & 0xf8) >> 3
     }
 
+    pub fn to_l8(&self) -> u8 {
+        self.red
+    }
+
     pub fn from_argb1555(color: u16) -> Color {
         Color {
             alpha: ((color >> 8) & 0x80) as u8,

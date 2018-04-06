@@ -129,7 +129,7 @@ fn main(hw: board::Hardware) -> ! {
     layer1.clear();
     layer1.swap_buffers();
 
-    let use_double_buffer = true;
+    let use_double_buffer = false;
 
     if !use_double_buffer {
         lcd.swap_buffers();
@@ -167,8 +167,10 @@ fn main(hw: board::Hardware) -> ! {
     let mut running_x = 0;
     let mut running_y = 0;
 
-    let mut x = 0;
+    let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
+    let lcdHandler = interrupts::primask_mutex::PrimaskMutex::new(lcd);
 
+    hprintln!("before interrupt");
     interrupts::scope(
         nvic,
         |irq| hprintln!("Default handler: {}", irq),
@@ -178,60 +180,64 @@ fn main(hw: board::Hardware) -> ! {
                     interrupts::interrupt_request::InterruptRequest::LcdTft,
                     interrupts::Priority::P1,
                     || {
-                        lcd.clr_line_interrupt();
-                        logic(&mut running_x, &mut running_y);
-                        draw(&mut layer1, &running_x, &running_y, current_color);
-                        // draw_number(&mut layer1, 0, 10, x);
-                        draw_fps(&mut layer1, &mut fps);
-
-                        for touch in &touch::touches(&mut i2c_3).unwrap() {
-                            layer1.print_point_color_at(
-                                touch.x as usize,
-                                touch.y as usize,
-                                *current_color,
-                            );
-
-                            if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
-                                current_color =&red;
-                            } else if in_rect(
-                                touch.x as usize,
-                                touch.y as usize,
-                                30,
-                                30 + 80,
-                                50,
-                                50,
-                            ) {
-                                current_color = green;
-                            } else if in_rect(
-                                touch.x as usize,
-                                touch.y as usize,
-                                30,
-                                30 + 80 + 80,
-                                50,
-                                50,
-                            ) {
-                                current_color = blue;
-                            }
-                        }
-                        if use_double_buffer {
-                            lcd.swap_buffers();
-                            layer1.swap_buffers();
-                        }
-                        fps.count_frame();
-                       // 
-                       /* x+=1;
-                        if x > 100 {
-                            lcd.clr_line_interrupt();
-                            x = 0;
-                        }*/
+                        should_draw_now.lock(|x| *x = true); // trigger redraw
+                        lcdHandler.lock(|lcd| lcd.clr_line_interrupt());
+                        //lcd.clr_line_interrupt(); // TODO: do I need to clear this interrupt
                     },
                 )
                 .expect("LcdTft interrupt already used");
 
+            hprintln!("before loop");
             loop {
-                //draw(&mut layer1, &running_x, &running_y, current_color);
+            
+                let need_draw = should_draw_now.lock(|x| { let r = *x; *x = false; r } );
+                if need_draw {
 
-                /**/
+                    lcdHandler.lock(|lcd| {
+
+                    logic(&mut running_x, &mut running_y);
+                    draw(&mut layer1, &running_x, &running_y, current_color);
+                    // draw_number(&mut layer1, 0, 10, x);
+                    draw_fps(&mut layer1, &mut fps);
+
+                    for touch in &touch::touches(&mut i2c_3).unwrap() {
+                        layer1.print_point_color_at(
+                            touch.x as usize,
+                            touch.y as usize,
+                            *current_color,
+                        );
+
+                        if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
+                            current_color =&red;
+                        } else if in_rect(
+                            touch.x as usize,
+                            touch.y as usize,
+                            30,
+                            30 + 80,
+                            50,
+                            50,
+                        ) {
+                            current_color = green;
+                        } else if in_rect(
+                            touch.x as usize,
+                            touch.y as usize,
+                            30,
+                            30 + 80 + 80,
+                            50,
+                            50,
+                        ) {
+                            current_color = blue;
+                        }
+                    }
+                    if use_double_buffer {
+                        lcd.swap_buffers();
+                        layer1.swap_buffers();
+                    }
+                    fps.count_frame();
+
+                    });
+                }
+
             }
         },
     )
@@ -252,18 +258,19 @@ fn main(hw: board::Hardware) -> ! {
 }
 
 fn draw(
-    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
     running_x: &usize,
     running_y: &usize,
     current_color: &lcd::Color,
 ) {
-    for _x in 0..1000 {
+    //for _x in 0..1000 {
         layer1.print_point_color_at(*running_x, *running_y, *current_color);
-    }
+    // }
     quad(50, 30, 40, current_color, layer1);   
+  //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
 }
 
-fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, fps: &mut fps::FpsCounter) {
+fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferL8>, fps: &mut fps::FpsCounter) {
     let mut number = fps.last_fps;
     if number > 99 {
         number = 99;
@@ -272,7 +279,7 @@ fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, fps: &mut fps::Fp
     draw_number(layer1, 5, 0, number % 10);
 }
 fn draw_number(
-    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
     x: usize,
     y: usize,
     number: usize,
@@ -300,7 +307,7 @@ fn draw_number(
     }
 }
 fn draw_seven_segment(
-    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
     x: usize,
     y: usize,
     top: bool,
@@ -391,7 +398,7 @@ fn quad(
     y: usize,
     size: usize,
     color: &lcd::Color,
-    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
 ) {
     for y in y..y + size {
         for x in x..x + size {
