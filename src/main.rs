@@ -9,7 +9,7 @@ extern crate r0;
 extern crate stm32f7_discovery as stm32f7;
 
 use embedded::interfaces::gpio::Gpio;
-use stm32f7::{board, embedded, sdram, system_clock, touch, i2c};
+use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
 mod lcd; // use custom LCD implementation
 
 mod fps;
@@ -38,6 +38,8 @@ pub unsafe extern "C" fn reset() -> ! {
     // zeroes the .bss section
     r0::zero_bss(bss_start, bss_end);
 
+    stm32f7::heap::init();
+
     // Initialize the floating point unit
     let scb = stm32f7::cortex_m::peripheral::scb_mut();
     scb.cpacr.modify(|v| v | 0b1111 << 20);
@@ -64,6 +66,11 @@ fn main(hw: board::Hardware) -> ! {
         gpio_j,
         gpio_k,
         i2c_3,
+        sai_2,
+        syscfg,
+        ethernet_mac,
+        ethernet_dma,
+        nvic,
         ..
     } = hw;
 
@@ -119,25 +126,26 @@ fn main(hw: board::Hardware) -> ! {
     // clear both buffers
     layer1.clear();
     layer1.swap_buffers();
-    layer1.clear();
+    //layer1.clear();
     layer1.swap_buffers(); // go back to first buffer
+    lcd.swap_buffers();
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
 
-    let red = lcd::Color {
+    let red = &lcd::Color {
         red: 255,
         green: 0,
         blue: 0,
         alpha: 255,
     };
-    let green = lcd::Color {
+    let green = &lcd::Color {
         red: 0,
         green: 255,
         blue: 0,
         alpha: 255,
     };
-    let blue = lcd::Color {
+    let blue = &lcd::Color {
         red: 0,
         green: 0,
         blue: 255,
@@ -147,36 +155,90 @@ fn main(hw: board::Hardware) -> ! {
     quad(30, 1 + 30 + 80, 50, &green, &mut layer1);
     quad(30, 1 + 30 + 80 + 80, 50, &blue, &mut layer1);
 
-    let mut current_color = &red;
-
-    lcd.swap_buffers();
+    let mut current_color = red;
 
     let mut running_x = 0;
     let mut running_y = 0;
 
-    loop {
-        //draw(&mut layer1, &running_x, &running_y, current_color);
-        logic(&mut running_x, &mut running_y);
-        draw(&mut layer1, &running_x, &running_y, current_color);
+    let mut x = 0;
 
-        draw_fps(&mut layer1, &mut fps);
+    interrupts::scope(
+        nvic,
+        |irq| hprintln!("Default handler: {}", irq),
+        |interrupt_table| {
+            let interrupt_handler = interrupt_table
+                .register(
+                    interrupts::interrupt_request::InterruptRequest::LcdTft,
+                    interrupts::Priority::P1,
+                    || {
+                        logic(&mut running_x, &mut running_y);
+                        draw(&mut layer1, &running_x, &running_y, current_color);
+                        // draw_number(&mut layer1, 0, 10, x);
+                        draw_fps(&mut layer1, &mut fps);
 
-        for touch in &touch::touches(&mut i2c_3).unwrap() {
-            layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
+                        for touch in &touch::touches(&mut i2c_3).unwrap() {
+                            layer1.print_point_color_at(
+                                touch.x as usize,
+                                touch.y as usize,
+                                *current_color,
+                            );
 
-            if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
-                current_color = &red;
-            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
-                current_color = &green;
-            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
-                current_color = &blue;
+                            if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
+                                current_color =&red;
+                            } else if in_rect(
+                                touch.x as usize,
+                                touch.y as usize,
+                                30,
+                                30 + 80,
+                                50,
+                                50,
+                            ) {
+                                current_color = green;
+                            } else if in_rect(
+                                touch.x as usize,
+                                touch.y as usize,
+                                30,
+                                30 + 80 + 80,
+                                50,
+                                50,
+                            ) {
+                                current_color = blue;
+                            }
+                        }
+                      /*  lcd.swap_buffers();
+                        layer1.swap_buffers();*/
+                        fps.count_frame();
+                        lcd.clr_line_interrupt();
+                       /* x+=1;
+                        if x > 100 {
+                            lcd.clr_line_interrupt();
+                            x = 0;
+                        }*/
+                    },
+                )
+                .expect("LcdTft interrupt already used");
+
+            loop {
+                //draw(&mut layer1, &running_x, &running_y, current_color);
+
+                /**/
             }
-        }
+        },
+    )
 
-        lcd.swap_buffers();
-        layer1.swap_buffers();
-        fps.count_frame();
-    }
+    // interrupts::scope(nvic, |irq| {  },
+    //     |interrupt_table| {
+    //             let interrupt_handle = interrupt_table.register(Tim7, P1,
+    //             || {
+    //                 // Isr for interrupt `Tim7`
+    //             }).expect("Interrupt already used");
+    //
+    //             /* Code that needs interrupt `Tim7` */
+    //
+    //             // Unregister interrupt and get back the ownership to `data`
+    //             let data = interrupt_table.unregister(interrupt_handle);
+    //             assert!(data.is_none());
+    // });
 }
 
 fn draw(
@@ -188,6 +250,7 @@ fn draw(
     for _x in 0..1000 {
         layer1.print_point_color_at(*running_x, *running_y, *current_color);
     }
+    quad(50, 30, 40, current_color, layer1);   
 }
 
 fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, fps: &mut fps::FpsCounter) {
@@ -196,10 +259,14 @@ fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, fps: &mut fps::Fp
         number = 99;
     }
     draw_number(layer1, 0, 0, number / 10);
-    draw_number(layer1, 5, 0, number
-     % 10);
+    draw_number(layer1, 5, 0, number % 10);
 }
-fn draw_number(layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>, x: usize, y: usize, number: usize) {
+fn draw_number(
+    layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+    x: usize,
+    y: usize,
+    number: usize,
+) {
     if number == 0 {
         draw_seven_segment(layer1, x, y, true, true, true, false, true, true, true);
     } else if number == 1 {
@@ -236,24 +303,23 @@ fn draw_seven_segment(
 ) {
     let black = lcd::Color::rgb(0, 0, 0);
     let white = lcd::Color::rgb(255, 255, 255);
-    layer1.print_point_color_at(x+0, y+0, if top { white } else { black });
-    layer1.print_point_color_at(x+1, y+0, if top { white } else { black });
-    layer1.print_point_color_at(x+2, y+0, if top { white } else { black });
-    layer1.print_point_color_at(x+0, y+1, if top_left { white } else { black });
-    layer1.print_point_color_at(x+2, y+1, if top_right { white } else { black });
-    layer1.print_point_color_at(x+0, y+2, if top_left { white } else { black });
-    layer1.print_point_color_at(x+2, y+2, if top_right { white } else { black });
-    layer1.print_point_color_at(x+0, y+3, if center { white } else { black });
-    layer1.print_point_color_at(x+1, y+3, if center { white } else { black });
-    layer1.print_point_color_at(x+2, y+3, if center { white } else { black });
-    layer1.print_point_color_at(x+0, y+4, if bottom_left { white } else { black });
-    layer1.print_point_color_at(x+2, y+4, if bottom_right { white } else { black });
-    layer1.print_point_color_at(x+0, y+5, if bottom_left { white } else { black });
-    layer1.print_point_color_at(x+2, y+5, if bottom_right { white } else { black });
-    layer1.print_point_color_at(x+0, y+6, if bottom { white } else { black });
-    layer1.print_point_color_at(x+1, y+6, if bottom { white } else { black });
-    layer1.print_point_color_at(x+2, y+6, if bottom { white } else { black });
-
+    layer1.print_point_color_at(x + 0, y + 0, if top { white } else { black });
+    layer1.print_point_color_at(x + 1, y + 0, if top { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 0, if top { white } else { black });
+    layer1.print_point_color_at(x + 0, y + 1, if top_left { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 1, if top_right { white } else { black });
+    layer1.print_point_color_at(x + 0, y + 2, if top_left { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 2, if top_right { white } else { black });
+    layer1.print_point_color_at(x + 0, y + 3, if center { white } else { black });
+    layer1.print_point_color_at(x + 1, y + 3, if center { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 3, if center { white } else { black });
+    layer1.print_point_color_at(x + 0, y + 4, if bottom_left { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 4, if bottom_right { white } else { black });
+    layer1.print_point_color_at(x + 0, y + 5, if bottom_left { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 5, if bottom_right { white } else { black });
+    layer1.print_point_color_at(x + 0, y + 6, if bottom { white } else { black });
+    layer1.print_point_color_at(x + 1, y + 6, if bottom { white } else { black });
+    layer1.print_point_color_at(x + 2, y + 6, if bottom { white } else { black });
 }
 
 fn logic(running_x: &mut usize, running_y: &mut usize) {

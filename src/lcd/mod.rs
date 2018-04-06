@@ -4,6 +4,7 @@ pub use self::color::Color;
 pub use self::init::init;
 
 use board::ltdc::Ltdc;
+use board::ltdc;
 use core::ptr;
 use embedded::interfaces::gpio::OutputPin;
 
@@ -59,6 +60,12 @@ impl Lcd {
 
         self.use_buffer_2 = !self.use_buffer_2;
     }
+
+    pub fn clr_line_interrupt(&mut self) {
+        let mut clr_flags = ltdc::Icr::default();
+        clr_flags.set_clif(true);
+        self.controller.icr.write(clr_flags);
+    }
 }
 
 pub trait Framebuffer {
@@ -104,11 +111,12 @@ impl Framebuffer for FramebufferArgb8888 {
         let dest_start_ptr;
 
         if self.use_buffer_2 {
-            src_start_ptr = LAYER_1_START as *mut u32;
-            dest_start_ptr = LAYER_1_START_2 as *mut u32;
-        } else {
             src_start_ptr = LAYER_1_START_2 as *mut u32;
             dest_start_ptr = LAYER_1_START as *mut u32;
+            
+        } else {
+            src_start_ptr = LAYER_1_START as *mut u32;
+            dest_start_ptr = LAYER_1_START_2 as *mut u32;
         }
         
         unsafe {
