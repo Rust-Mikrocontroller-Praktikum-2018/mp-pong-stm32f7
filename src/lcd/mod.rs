@@ -27,7 +27,7 @@ pub struct Lcd {
     display_enable: OutputPin,
     backlight_enable: OutputPin,
     layer_1_in_use: bool,
-    use_buffer_2: bool,
+    write_to_buffer_2: bool,
 }
 
 impl Lcd {
@@ -45,20 +45,20 @@ impl Lcd {
         }
     }
     pub fn swap_buffers(&mut self) {
-        if self.use_buffer_2 {
-            self.controller
-                .l1cfbar
-                .update(|r| r.set_cfbadd(LAYER_1_START_2 as u32));
-        } else {
+        if self.write_to_buffer_2 {
             self.controller
                 .l1cfbar
                 .update(|r| r.set_cfbadd(LAYER_1_START as u32));
+        } else {
+            self.controller
+                .l1cfbar
+                .update(|r| r.set_cfbadd(LAYER_1_START_2 as u32));
         }
         
         // reload shadow registers
         self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
 
-        self.use_buffer_2 = !self.use_buffer_2;
+        self.write_to_buffer_2 = !self.write_to_buffer_2;
     }
 
     pub fn clr_line_interrupt(&mut self) {
@@ -75,23 +75,23 @@ pub trait Framebuffer {
 
 pub struct FramebufferArgb8888 {
     base_addr: usize,
-    base_addr2: usize,
-    use_buffer_2: bool,
+    base_addr_2: usize,
+    write_to_buffer_2: bool,
 }
 
 impl FramebufferArgb8888 {
-    fn new(base_addr: usize, base_addr2: usize) -> Self {
-        let use_buffer_2 = false;
+    fn new(base_addr: usize, base_addr_2: usize) -> Self {
+        let write_to_buffer_2 = false;
         Self {
             base_addr,
-            base_addr2,
-            use_buffer_2,
+            base_addr_2,
+            write_to_buffer_2,
         }
     }
 
     fn current_base_addr(&mut self) -> usize {
-        if self.use_buffer_2 {
-            self.base_addr2
+        if self.write_to_buffer_2 {
+            self.base_addr_2
         } else {
             self.base_addr
         }
@@ -106,11 +106,10 @@ impl Framebuffer for FramebufferArgb8888 {
     }
 
     fn swap_buffers(&mut self) {
-        self.use_buffer_2 = !self.use_buffer_2;
         let src_start_ptr;
         let dest_start_ptr;
 
-        if self.use_buffer_2 {
+        if self.write_to_buffer_2 {
             src_start_ptr = LAYER_1_START_2 as *mut u32;
             dest_start_ptr = LAYER_1_START as *mut u32;
             
@@ -118,6 +117,8 @@ impl Framebuffer for FramebufferArgb8888 {
             src_start_ptr = LAYER_1_START as *mut u32;
             dest_start_ptr = LAYER_1_START_2 as *mut u32;
         }
+
+        self.write_to_buffer_2 = !self.write_to_buffer_2;
         
         unsafe {
             ptr::copy_nonoverlapping(

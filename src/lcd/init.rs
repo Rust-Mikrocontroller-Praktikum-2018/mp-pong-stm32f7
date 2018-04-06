@@ -70,7 +70,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     });
 
     // set background color
-    ltdc.bccr.update(|r| r.set_bc(0x0000ff)); // background_color blue
+    ltdc.bccr.update(|r| r.set_bc(0x00_00ff)); // background_color blue
 
 
     // enable the transfer error interrupt and the FIFO underrun interrupt
@@ -82,7 +82,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
 
     // set the line the interrupt should happen on
     ltdc.lipcr.update(|r| {
-        r.set_lipos(0);
+        r.set_lipos(60);
     });
 
     // enable LTDC
@@ -175,7 +175,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
         display_enable: display_enable,
         backlight_enable: backlight_enable,
         layer_1_in_use: false,
-        use_buffer_2: false,
+        write_to_buffer_2: false,
     }
 }
 

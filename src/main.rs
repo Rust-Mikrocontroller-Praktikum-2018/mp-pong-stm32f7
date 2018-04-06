@@ -126,9 +126,16 @@ fn main(hw: board::Hardware) -> ! {
     // clear both buffers
     layer1.clear();
     layer1.swap_buffers();
-    //layer1.clear();
-    layer1.swap_buffers(); // go back to first buffer
+    layer1.clear();
+    layer1.swap_buffers();
+
+    let use_double_buffer = true;
+
+    if !use_double_buffer {
+        lcd.swap_buffers();
+    }
     lcd.swap_buffers();
+    
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
@@ -171,6 +178,7 @@ fn main(hw: board::Hardware) -> ! {
                     interrupts::interrupt_request::InterruptRequest::LcdTft,
                     interrupts::Priority::P1,
                     || {
+                        lcd.clr_line_interrupt();
                         logic(&mut running_x, &mut running_y);
                         draw(&mut layer1, &running_x, &running_y, current_color);
                         // draw_number(&mut layer1, 0, 10, x);
@@ -205,10 +213,12 @@ fn main(hw: board::Hardware) -> ! {
                                 current_color = blue;
                             }
                         }
-                      /*  lcd.swap_buffers();
-                        layer1.swap_buffers();*/
+                        if use_double_buffer {
+                            lcd.swap_buffers();
+                            layer1.swap_buffers();
+                        }
                         fps.count_frame();
-                        lcd.clr_line_interrupt();
+                       // 
                        /* x+=1;
                         if x > 100 {
                             lcd.clr_line_interrupt();
@@ -383,8 +393,8 @@ fn quad(
     color: &lcd::Color,
     layer1: &mut lcd::Layer<lcd::FramebufferArgb8888>,
 ) {
-    for x in x..x + size {
-        for y in y..y + size {
+    for y in y..y + size {
+        for x in x..x + size {
             layer1.print_point_color_at(x, y, *color);
         }
     }
