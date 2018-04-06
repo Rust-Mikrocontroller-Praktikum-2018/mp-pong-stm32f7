@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![feature(compiler_builtins_lib)]
+#![cfg_attr(feature = "cargo-clippy", warn(clippy))]
 
 extern crate compiler_builtins;
 extern crate r0;
@@ -171,6 +172,7 @@ fn main(hw: board::Hardware) -> ! {
                 current_color = &blue;
             }
         }
+
         lcd.swap_buffers();
         layer1.swap_buffers();
         fps.count_frame();

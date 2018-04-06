@@ -126,40 +126,6 @@ pub struct Layer<T> {
 }
 
 impl<T: Framebuffer> Layer<T> {
-    pub fn horizontal_stripes(&mut self) {
-        let colors = [
-            0xffffff, 0xcccccc, 0x999999, 0x666666, 0x333333, 0x0, 0xff0000, 0x0000ff
-        ];
-
-        // horizontal stripes
-        for i in 0..HEIGHT {
-            for j in 0..WIDTH {
-                self.framebuffer.set_pixel(
-                    j,
-                    i,
-                    Color::from_rgb888(colors[(i / 10) % colors.len()]),
-                );
-            }
-        }
-    }
-
-    pub fn vertical_stripes(&mut self) {
-        let colors = [
-            0xcccccc, 0x999999, 0x666666, 0x333333, 0x0, 0xff0000, 0x0000ff, 0xffffff
-        ];
-
-        // vertical stripes
-        for i in 0..HEIGHT {
-            for j in 0..WIDTH {
-                self.framebuffer.set_pixel(
-                    j,
-                    i,
-                    Color::from_rgb888(colors[(j / 10) % colors.len()]),
-                );
-            }
-        }
-    }
-
     pub fn clear(&mut self) {
         for i in 0..HEIGHT {
             for j in 0..WIDTH {
@@ -169,7 +135,7 @@ impl<T: Framebuffer> Layer<T> {
     }
 
     pub fn print_point_at(&mut self, x: usize, y: usize) {
-        self.print_point_color_at(x, y, Color::from_hex(0xffffff));
+        self.print_point_color_at(x, y, Color::from_hex(0xff_ffff));
     }
 
     pub fn print_point_color_at(&mut self, x: usize, y: usize, color: Color) {

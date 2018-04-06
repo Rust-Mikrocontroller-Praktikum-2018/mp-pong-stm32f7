@@ -9,12 +9,12 @@ pub struct FpsCounter {
 
 pub fn init() -> FpsCounter {
     let current_time = system_clock::ticks();
-    return FpsCounter {
+    FpsCounter {
         last_print: current_time,
         frames: 0,
         last_fps: 0,
         output_enabled: false,
-    };
+    }
 }
 
 impl FpsCounter {
