@@ -170,7 +170,7 @@ fn main(hw: board::Hardware) -> ! {
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
     let lcdHandler = interrupts::primask_mutex::PrimaskMutex::new(lcd);
 
-    hprintln!("before interrupt");
+    /*hprintln!("before interrupt");
     interrupts::scope(
         nvic,
         |irq| hprintln!("Default handler: {}", irq),
@@ -187,10 +187,10 @@ fn main(hw: board::Hardware) -> ! {
                 )
                 .expect("LcdTft interrupt already used");
 
-            hprintln!("before loop");
+            hprintln!("before loop");*/
             loop {
             
-                let need_draw = should_draw_now.lock(|x| { let r = *x; *x = false; r } );
+                let need_draw = true;//should_draw_now.lock(|x| { let r = *x; *x = false; r } );
                 if need_draw {
 
                     lcdHandler.lock(|lcd| {
@@ -239,8 +239,8 @@ fn main(hw: board::Hardware) -> ! {
                 }
 
             }
-        },
-    )
+   /*     },
+    )*/
 
     // interrupts::scope(nvic, |irq| {  },
     //     |interrupt_table| {
