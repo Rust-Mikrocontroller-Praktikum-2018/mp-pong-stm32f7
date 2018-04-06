@@ -103,7 +103,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     });
 
     // specify pixed format
-    ltdc.l1pfcr.update(|r| r.set_pf(0b101)); // set_pixel_format to L8
+    ltdc.l1pfcr.update(|r| r.set_pf(0b111)); // set_pixel_format to L8
 
     // configure default color values
     ltdc.l1dccr.update(|r| {

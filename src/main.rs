@@ -164,7 +164,7 @@ fn main(hw: board::Hardware) -> ! {
 
     let mut current_color = red;
 
-    let mut running_x = 0;
+    let mut running_x = 40;
     let mut running_y = 0;
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
@@ -342,7 +342,7 @@ fn draw_seven_segment(
 fn logic(running_x: &mut usize, running_y: &mut usize) {
     *running_x += 1;
     if *running_x >= 480 {
-        *running_x = 0;
+        *running_x = 40;
         *running_y += 1;
         if *running_y >= 272 {
             *running_y = 0;

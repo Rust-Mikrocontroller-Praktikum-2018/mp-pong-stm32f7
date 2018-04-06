@@ -15,7 +15,7 @@ mod color;
 const HEIGHT: usize = 272;
 const WIDTH: usize = 480;
 
-const LAYER_1_OCTETS_PER_PIXEL: usize = 1;
+const LAYER_1_OCTETS_PER_PIXEL: usize = 2;
 const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
 
 const SDRAM_START: usize = 0xC000_0000;
@@ -101,8 +101,8 @@ impl FramebufferL8 {
 impl Framebuffer for FramebufferL8 {
     fn set_pixel(&mut self, x: usize, y: usize, color: Color) {
         let pixel = y * WIDTH + x;
-        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
-        unsafe { ptr::write_volatile(pixel_ptr, color.to_l8()); };
+        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
+        unsafe { ptr::write_volatile(pixel_ptr, (color.to_l8() as u16)<<8|0xff ); };
     }
 
     fn swap_buffers(&mut self) {
