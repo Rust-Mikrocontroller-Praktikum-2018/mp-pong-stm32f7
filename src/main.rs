@@ -158,9 +158,9 @@ fn main(hw: board::Hardware) -> ! {
         blue: 255,
         alpha: 255,
     };
-    quad(30, 1 + 30, 50, &red, &mut layer1);
+    /*quad(30, 1 + 30, 50, &red, &mut layer1);
     quad(30, 1 + 30 + 80, 50, &green, &mut layer1);
-    quad(30, 1 + 30 + 80 + 80, 50, &blue, &mut layer1);
+    quad(30, 1 + 30 + 80 + 80, 50, &blue, &mut layer1);*/
 
     let mut current_color = red;
 
@@ -196,9 +196,9 @@ fn main(hw: board::Hardware) -> ! {
                     lcdHandler.lock(|lcd| {
 
                     logic(&mut running_x, &mut running_y);
-                    draw(&mut layer1, &running_x, &running_y, current_color);
+                    // draw(&mut layer1, &running_x, &running_y, current_color);
                     // draw_number(&mut layer1, 0, 10, x);
-                    draw_fps(&mut layer1, &mut fps);
+                    //draw_fps(&mut layer1, &mut fps);
 
                     for touch in &touch::touches(&mut i2c_3).unwrap() {
                         layer1.print_point_color_at(
@@ -266,7 +266,7 @@ fn draw(
     //for _x in 0..1000 {
         layer1.print_point_color_at(*running_x, *running_y, *current_color);
     // }
-    quad(50, 30, 40, current_color, layer1);   
+   // quad(50, 30, 40, current_color, layer1);   
   //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
 }
 

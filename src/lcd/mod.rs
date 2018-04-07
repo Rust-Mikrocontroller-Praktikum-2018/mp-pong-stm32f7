@@ -15,13 +15,15 @@ mod color;
 const HEIGHT: usize = 272;
 const WIDTH: usize = 480;
 
-const LAYER_1_OCTETS_PER_PIXEL: usize = 2;
+const LAYER_1_OCTETS_PER_PIXEL: usize = 1;
 const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
 
 const SDRAM_START: usize = 0xC000_0000;
 const LAYER_1_START: usize = SDRAM_START;
 const LAYER_1_START_2: usize = SDRAM_START +  1024 * 1024 * 1; // move backbuffer to second SDRAM bank
 
+static EMPTY_PIC: &[u8] = include_bytes!("empty.pic");
+ 
 pub struct Lcd {
     controller: &'static mut Ltdc,
     display_enable: OutputPin,
@@ -70,7 +72,9 @@ impl Lcd {
 
 pub trait Framebuffer {
     fn set_pixel(&mut self, x: usize, y: usize, color: Color);
+    fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8);
     fn swap_buffers(&mut self);
+    fn copy_full(&mut self, src_start_ptr: *const u8);
 }
 
 pub struct FramebufferL8 {
@@ -100,9 +104,12 @@ impl FramebufferL8 {
 
 impl Framebuffer for FramebufferL8 {
     fn set_pixel(&mut self, x: usize, y: usize, color: Color) {
+        self.set_pixel_direct(x, y, color.to_l8());
+    }
+    fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8) {
         let pixel = y * WIDTH + x;
-        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
-        unsafe { ptr::write_volatile(pixel_ptr, (color.to_l8() as u16)<<8|0xff ); };
+        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
+        unsafe { ptr::write_unaligned(pixel_ptr, color ); };
     }
 
     fn swap_buffers(&mut self) {
@@ -128,6 +135,28 @@ impl Framebuffer for FramebufferL8 {
             );
         } 
     }
+
+    fn copy_full(&mut self, src_start_ptr: *const u8) {
+        let dest_start_ptr;
+
+        if self.write_to_buffer_2 {
+            dest_start_ptr = LAYER_1_START_2 as *mut u8;
+        } else {
+            dest_start_ptr = LAYER_1_START as *mut u8;
+        }
+        unsafe {
+            ptr::copy_nonoverlapping(
+                src_start_ptr as *const u32,
+                dest_start_ptr as *mut u32,
+                WIDTH * HEIGHT / 4
+            );
+            /*ptr::copy_nonoverlapping(
+                src_start_ptr,
+                dest_start_ptr,
+                WIDTH * HEIGHT / 4  // we only store u8 for every pixel
+            );*/
+        }
+    }
 }
 
 pub struct Layer<T> {
@@ -136,11 +165,15 @@ pub struct Layer<T> {
 
 impl<T: Framebuffer> Layer<T> {
     pub fn clear(&mut self) {
-        for i in 0..HEIGHT {
+        /*for i in 0..HEIGHT {
             for j in 0..WIDTH {
-                self.framebuffer.set_pixel(j, i, Color::rgb(0,0,0));
+                //hprint!("{}", EMPTY_PIC[j + i*WIDTH]);
+                self.framebuffer.set_pixel_direct(j, i, EMPTY_PIC[j + i*WIDTH]);
+                // self.framebuffer.set_pixel(j, i, Color::rgb(0,0,0));
             }
-        }
+        }*/
+        let src_start_ptr = &EMPTY_PIC[0] as *const u8;
+        self.framebuffer.copy_full(src_start_ptr);
     }
 
     pub fn print_point_at(&mut self, x: usize, y: usize) {

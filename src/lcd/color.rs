@@ -61,7 +61,11 @@ impl Color {
     }
 
     pub fn to_l8(&self) -> u8 {
-        self.red
+        if self.red > 5 {
+            0x80
+        } else {
+            0x00
+        }
     }
 
     pub fn from_argb1555(color: u16) -> Color {
