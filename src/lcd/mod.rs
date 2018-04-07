@@ -108,10 +108,11 @@ impl Framebuffer for FramebufferL8 {
     }
     fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8) {
         let pixel = y * WIDTH + x;
+/*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
+        unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
+
         let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
         unsafe { ptr::write_volatile(pixel_ptr, color ); };
-        /*let pixel_ptr2 = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL + 1) as *mut u8;
-        unsafe { ptr::write_volatile(pixel_ptr2, color ); };*/
     }
 
     fn swap_buffers(&mut self) {
@@ -129,11 +130,15 @@ impl Framebuffer for FramebufferL8 {
 
         self.write_to_buffer_2 = !self.write_to_buffer_2;
         
+        let mut count = WIDTH * HEIGHT;
+        if LAYER_1_OCTETS_PER_PIXEL == 1 {
+            count /= 4;                  // we only store u8 for every pixel
+        }
         unsafe {
             ptr::copy_nonoverlapping(
                 src_start_ptr,
                 dest_start_ptr,
-                WIDTH * HEIGHT / 4  // we only store u8 for every pixel
+                count,
             );
         } 
     }

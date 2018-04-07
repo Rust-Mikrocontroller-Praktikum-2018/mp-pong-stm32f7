@@ -129,7 +129,7 @@ fn main(hw: board::Hardware) -> ! {
     layer1.clear();
     layer1.swap_buffers();
 
-    let use_double_buffer = true;
+    let use_double_buffer = false;
 
     if !use_double_buffer {
         lcd.swap_buffers();
@@ -138,6 +138,9 @@ fn main(hw: board::Hardware) -> ! {
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
+    // fps.output_enabled = true;
+
+
 
     let red = &lcd::Color {
         red: 255,
@@ -168,14 +171,13 @@ fn main(hw: board::Hardware) -> ! {
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
     loop {
-        for i in 0..100 {
-            logic(&mut running_x, &mut running_y);
-            draw(&mut layer1, &running_x, &running_y, &green);
-        }
+        logic(&mut running_x, &mut running_y);
+        draw(&mut layer1, &running_x, &running_y, &green);
         // draw_number(&mut layer1, 0, 10, x);
-        // draw_fps(&mut layer1, &mut fps);
+        draw_fps(&mut layer1, &mut fps);
+        
 
-        // quad(30, 30, 100, current_color, &mut layer1);
+        quad(32, 32, 50, current_color, &mut layer1);
 
         for touch in &touch::touches(&mut i2c_3).unwrap() {
             layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
