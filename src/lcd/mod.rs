@@ -190,4 +190,8 @@ impl<T: Framebuffer> Layer<T> {
     pub fn swap_buffers(&mut self) {
         self.framebuffer.swap_buffers();
     }
+
+    pub fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8) {
+        self.framebuffer.set_pixel_direct(x, y, color);
+    }
 }

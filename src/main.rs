@@ -129,13 +129,12 @@ fn main(hw: board::Hardware) -> ! {
     layer1.clear();
     layer1.swap_buffers();
 
-    let use_double_buffer = false;
+    let use_double_buffer = true;
 
     if !use_double_buffer {
         lcd.swap_buffers();
     }
     lcd.swap_buffers();
-    
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
@@ -168,93 +167,31 @@ fn main(hw: board::Hardware) -> ! {
     let mut running_y = 0;
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
-    let lcdHandler = interrupts::primask_mutex::PrimaskMutex::new(lcd);
+    loop {
+        logic(&mut running_x, &mut running_y);
+        draw(&mut layer1, &running_x, &running_y, current_color);
+        // draw_number(&mut layer1, 0, 10, x);
+        // draw_fps(&mut layer1, &mut fps);
 
-    /*hprintln!("before interrupt");
-    interrupts::scope(
-        nvic,
-        |irq| hprintln!("Default handler: {}", irq),
-        |interrupt_table| {
-            let interrupt_handler = interrupt_table
-                .register(
-                    interrupts::interrupt_request::InterruptRequest::LcdTft,
-                    interrupts::Priority::P1,
-                    || {
-                        should_draw_now.lock(|x| *x = true); // trigger redraw
-                        lcdHandler.lock(|lcd| lcd.clr_line_interrupt());
-                        //lcd.clr_line_interrupt(); // TODO: do I need to clear this interrupt
-                    },
-                )
-                .expect("LcdTft interrupt already used");
+        // quad(30, 30, 100, current_color, &mut layer1);
 
-            hprintln!("before loop");*/
-            loop {
-            
-                let need_draw = true;//should_draw_now.lock(|x| { let r = *x; *x = false; r } );
-                if need_draw {
+        for touch in &touch::touches(&mut i2c_3).unwrap() {
+            layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
 
-                    lcdHandler.lock(|lcd| {
-
-                    logic(&mut running_x, &mut running_y);
-                    // draw(&mut layer1, &running_x, &running_y, current_color);
-                    // draw_number(&mut layer1, 0, 10, x);
-                    //draw_fps(&mut layer1, &mut fps);
-
-                    for touch in &touch::touches(&mut i2c_3).unwrap() {
-                        layer1.print_point_color_at(
-                            touch.x as usize,
-                            touch.y as usize,
-                            *current_color,
-                        );
-
-                        if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
-                            current_color =&red;
-                        } else if in_rect(
-                            touch.x as usize,
-                            touch.y as usize,
-                            30,
-                            30 + 80,
-                            50,
-                            50,
-                        ) {
-                            current_color = green;
-                        } else if in_rect(
-                            touch.x as usize,
-                            touch.y as usize,
-                            30,
-                            30 + 80 + 80,
-                            50,
-                            50,
-                        ) {
-                            current_color = blue;
-                        }
-                    }
-                    if use_double_buffer {
-                        lcd.swap_buffers();
-                        layer1.swap_buffers();
-                    }
-                    fps.count_frame();
-
-                    });
-                }
-
+            if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
+                current_color = &red;
+            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
+                current_color = green;
+            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
+                current_color = blue;
             }
-   /*     },
-    )*/
-
-    // interrupts::scope(nvic, |irq| {  },
-    //     |interrupt_table| {
-    //             let interrupt_handle = interrupt_table.register(Tim7, P1,
-    //             || {
-    //                 // Isr for interrupt `Tim7`
-    //             }).expect("Interrupt already used");
-    //
-    //             /* Code that needs interrupt `Tim7` */
-    //
-    //             // Unregister interrupt and get back the ownership to `data`
-    //             let data = interrupt_table.unregister(interrupt_handle);
-    //             assert!(data.is_none());
-    // });
+        }
+        if use_double_buffer {
+            lcd.swap_buffers();
+            layer1.swap_buffers();
+        }
+        fps.count_frame();
+    }
 }
 
 fn draw(
@@ -264,10 +201,10 @@ fn draw(
     current_color: &lcd::Color,
 ) {
     //for _x in 0..1000 {
-        layer1.print_point_color_at(*running_x, *running_y, *current_color);
+    layer1.print_point_color_at(*running_x, *running_y, *current_color);
     // }
-   // quad(50, 30, 40, current_color, layer1);   
-  //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
+    // quad(50, 30, 40, current_color, layer1);
+    //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
 }
 
 fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferL8>, fps: &mut fps::FpsCounter) {
@@ -278,12 +215,7 @@ fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferL8>, fps: &mut fps::FpsCount
     draw_number(layer1, 0, 0, number / 10);
     draw_number(layer1, 5, 0, number % 10);
 }
-fn draw_number(
-    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
-    x: usize,
-    y: usize,
-    number: usize,
-) {
+fn draw_number(layer1: &mut lcd::Layer<lcd::FramebufferL8>, x: usize, y: usize, number: usize) {
     if number == 0 {
         draw_seven_segment(layer1, x, y, true, true, true, false, true, true, true);
     } else if number == 1 {
@@ -318,25 +250,25 @@ fn draw_seven_segment(
     bottom_right: bool,
     bottom: bool,
 ) {
-    let black = lcd::Color::rgb(0, 0, 0);
-    let white = lcd::Color::rgb(255, 255, 255);
-    layer1.print_point_color_at(x + 0, y + 0, if top { white } else { black });
-    layer1.print_point_color_at(x + 1, y + 0, if top { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 0, if top { white } else { black });
-    layer1.print_point_color_at(x + 0, y + 1, if top_left { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 1, if top_right { white } else { black });
-    layer1.print_point_color_at(x + 0, y + 2, if top_left { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 2, if top_right { white } else { black });
-    layer1.print_point_color_at(x + 0, y + 3, if center { white } else { black });
-    layer1.print_point_color_at(x + 1, y + 3, if center { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 3, if center { white } else { black });
-    layer1.print_point_color_at(x + 0, y + 4, if bottom_left { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 4, if bottom_right { white } else { black });
-    layer1.print_point_color_at(x + 0, y + 5, if bottom_left { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 5, if bottom_right { white } else { black });
-    layer1.print_point_color_at(x + 0, y + 6, if bottom { white } else { black });
-    layer1.print_point_color_at(x + 1, y + 6, if bottom { white } else { black });
-    layer1.print_point_color_at(x + 2, y + 6, if bottom { white } else { black });
+    let black = 0;
+    let white = 255;
+    layer1.set_pixel_direct(x + 0, y + 0, if top { white } else { black });
+    layer1.set_pixel_direct(x + 1, y + 0, if top { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 0, if top { white } else { black });
+    layer1.set_pixel_direct(x + 0, y + 1, if top_left { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 1, if top_right { white } else { black });
+    layer1.set_pixel_direct(x + 0, y + 2, if top_left { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 2, if top_right { white } else { black });
+    layer1.set_pixel_direct(x + 0, y + 3, if center { white } else { black });
+    layer1.set_pixel_direct(x + 1, y + 3, if center { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 3, if center { white } else { black });
+    layer1.set_pixel_direct(x + 0, y + 4, if bottom_left { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 4, if bottom_right { white } else { black });
+    layer1.set_pixel_direct(x + 0, y + 5, if bottom_left { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 5, if bottom_right { white } else { black });
+    layer1.set_pixel_direct(x + 0, y + 6, if bottom { white } else { black });
+    layer1.set_pixel_direct(x + 1, y + 6, if bottom { white } else { black });
+    layer1.set_pixel_direct(x + 2, y + 6, if bottom { white } else { black });
 }
 
 fn logic(running_x: &mut usize, running_y: &mut usize) {
