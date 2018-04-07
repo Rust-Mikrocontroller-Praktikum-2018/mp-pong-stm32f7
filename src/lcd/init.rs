@@ -1,12 +1,12 @@
-use board::rcc::Rcc;
-use board::ltdc::Ltdc;
-use embedded::interfaces::gpio::{Gpio, OutputPin};
 use super::{LAYER_1_START, LAYER_1_START_2, Lcd};
+use board::ltdc::Ltdc;
+use board::ltdc::L1clutwr;
+use board::rcc::Rcc;
+use embedded::interfaces::gpio::{Gpio, OutputPin};
 
 const HEIGHT: u16 = super::HEIGHT as u16;
 const WIDTH: u16 = super::WIDTH as u16;
 const LAYER_1_OCTETS_PER_PIXEL: u16 = super::LAYER_1_OCTETS_PER_PIXEL as u16;
-
 
 pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     // init gpio pins
@@ -72,21 +72,17 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     // set background color
     ltdc.bccr.update(|r| r.set_bc(0x00_00ff)); // background_color blue
 
-
     // enable the transfer error interrupt and the FIFO underrun interrupt
     ltdc.ier.update(|r| {
         r.set_terrie(true); // TRANSFER_ERROR_INTERRUPT_ENABLE
         r.set_fuie(true); // FIFO_UNDERRUN_INTERRUPT_ENABLE
-        r.set_lie(true); // LINE_INTERRUPT_ENABLE        
+        r.set_lie(true); // LINE_INTERRUPT_ENABLE
     });
 
     // set the line the interrupt should happen on
     ltdc.lipcr.update(|r| {
         r.set_lipos(HEIGHT);
     });
-
-    // enable LTDC
-    ltdc.gcr.update(|r| r.set_ltdcen(true));
 
     // configure layers
 
@@ -107,15 +103,14 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
 
     // configure default color values
     ltdc.l1dccr.update(|r| {
-        r.set_dcalpha(0);
+        r.set_dcalpha(255);
         r.set_dcred(0);
-        r.set_dcgreen(0);
+        r.set_dcgreen(255);
         r.set_dcblue(0);
     });
 
-
     // configure color frame buffer start address
-   // ltdc.l1cfbar.update(|r| r.set_cfbadd(LAYER_1_START as u32)); // don't draw in waiting time
+    // ltdc.l1cfbar.update(|r| r.set_cfbadd(LAYER_1_START as u32)); // don't draw in waiting time
 
     // configure color frame buffer line length and pitch
     ltdc.l1cfblr.update(|r| {
@@ -126,41 +121,31 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     // configure frame buffer line number
     ltdc.l1cfblnr.update(|r| r.set_cfblnbr(HEIGHT)); // line_number
 
-    // enable layers
-    ltdc.l1cr.update(|r| r.set_len(true));
+    // define CLUT for layer 1
+    for c in 0..=255 {
+        let mut clut = L1clutwr::default();
+        clut.set_red(if (c > 100) {0} else {255});
+        clut.set_blue(if (c > 200) {0} else {255});
+        clut.set_green(c);
+        clut.set_clutadd(c);
+
+        ltdc.l1clutwr.write(clut);
+    }
+
+    ltdc.l1cr.update(|r| {
+        r.set_len(true); // enable layer 1
+        r.set_cluten(true); // enable CLUT for layer 1
+    });
 
     // reload shadow registers
     ltdc.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
 
-    // init DMA2D graphic
-
-
+    // enable LTDC
+    ltdc.gcr.update(|r| r.set_ltdcen(true));
 
     // enable display and backlight
     display_enable.set(true);
     backlight_enable.set(true);
-
-    // TODO
-    //
-    // Init LTDC layers */
-    // TM_LCD_INT_InitLayers();
-    // Init DMA2D GRAPHICS */
-    // TM_DMA2DGRAPHIC_Init();
-    // Set settings */
-    // TM_INT_DMA2DGRAPHIC_SetConf(&DMA2DConf);
-    // Enable LCD */
-    // TM_LCD_DisplayOn();
-    // Set layer 1 as active layer */
-    // TM_LCD_SetLayer1();
-    // TM_LCD_Fill(LCD_COLOR_WHITE);
-    // TM_LCD_SetLayer2();
-    // TM_LCD_Fill(LCD_COLOR_WHITE);
-    // TM_LCD_SetLayer1();
-    // Set layer 1 as active layer */
-    // TM_LCD_SetLayer1Opacity(255);
-    // TM_LCD_SetLayer2Opacity(0);
-    //
-    //
 
     Lcd {
         controller: ltdc,
@@ -172,8 +157,8 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
 }
 
 pub fn init_pins(gpio: &mut Gpio) -> (OutputPin, OutputPin) {
-    use embedded::interfaces::gpio::Port::*;
     use embedded::interfaces::gpio::Pin::*;
+    use embedded::interfaces::gpio::Port::*;
     use embedded::interfaces::gpio::{AlternateFunction, OutputSpeed, OutputType, Resistor};
 
     // Red

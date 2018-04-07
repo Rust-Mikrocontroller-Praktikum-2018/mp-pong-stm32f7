@@ -146,7 +146,7 @@ fn main(hw: board::Hardware) -> ! {
         alpha: 255,
     };
     let green = &lcd::Color {
-        red: 0,
+        red: 128,
         green: 255,
         blue: 0,
         alpha: 255,
@@ -168,8 +168,10 @@ fn main(hw: board::Hardware) -> ! {
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
     loop {
-        logic(&mut running_x, &mut running_y);
-        draw(&mut layer1, &running_x, &running_y, current_color);
+        for i in 0..100 {
+            logic(&mut running_x, &mut running_y);
+            draw(&mut layer1, &running_x, &running_y, &green);
+        }
         // draw_number(&mut layer1, 0, 10, x);
         // draw_fps(&mut layer1, &mut fps);
 
@@ -202,6 +204,7 @@ fn draw(
 ) {
     //for _x in 0..1000 {
     layer1.print_point_color_at(*running_x, *running_y, *current_color);
+    
     // }
     // quad(50, 30, 40, current_color, layer1);
     //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);

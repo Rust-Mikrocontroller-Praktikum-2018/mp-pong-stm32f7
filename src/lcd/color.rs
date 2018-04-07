@@ -23,7 +23,7 @@ impl Color {
             alpha: alpha,
         }
     }
-
+ 
     pub fn from_hex(color: u32) -> Color {
         assert_eq!(color >> (8 * 3), 0);
         Color {

@@ -45,7 +45,7 @@ impl Lcd {
                 framebuffer: FramebufferL8::new(LAYER_1_START, LAYER_1_START_2),
             })
         }
-    }
+    } 
     pub fn swap_buffers(&mut self) {
         if self.write_to_buffer_2 {
             self.controller
@@ -109,7 +109,9 @@ impl Framebuffer for FramebufferL8 {
     fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8) {
         let pixel = y * WIDTH + x;
         let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
-        unsafe { ptr::write_unaligned(pixel_ptr, color ); };
+        unsafe { ptr::write_volatile(pixel_ptr, color ); };
+        /*let pixel_ptr2 = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL + 1) as *mut u8;
+        unsafe { ptr::write_volatile(pixel_ptr2, color ); };*/
     }
 
     fn swap_buffers(&mut self) {
