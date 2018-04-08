@@ -11,9 +11,13 @@ extern crate stm32f7_discovery as stm32f7;
 use embedded::interfaces::gpio::Gpio;
 use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
 mod lcd; // use custom LCD implementation
-use lcd::FramebufferL8;
 use lcd::Framebuffer;
+use lcd::FramebufferL8;
 mod fps;
+use core::ptr;
+
+const USE_DOUBLE_BUFFER: bool = true;
+const ENABLE_FPS_OUTPUT: bool = false;
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -75,7 +79,10 @@ fn main(hw: board::Hardware) -> ! {
         nvic,
         ..
     } = hw;
-
+    interrupts::scope(
+        nvic,
+        |_| {},
+         move |interrupt_table| {
     let mut gpio = Gpio::new(
         gpio_a,
         gpio_b,
@@ -110,6 +117,12 @@ fn main(hw: board::Hardware) -> ! {
     // init sdram (for display)
     sdram::init(rcc, fmc, &mut gpio);
 
+
+    // init touch screen
+    i2c::init_pins_and_clocks(rcc, &mut gpio);
+    let mut i2c_3 = i2c::init(i2c_3);
+    touch::check_family_id(&mut i2c_3).unwrap();
+
     let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
     lcd.set_background_color(lcd::Color {
         red: 0,
@@ -122,33 +135,50 @@ fn main(hw: board::Hardware) -> ! {
     framebuffer.init();
     lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
     lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
-    /*let mut layer1  = lcd::Layer {
-                framebuffer: framebuffer,
-    };*/
-    
 
-    // init touch screen
-    i2c::init_pins_and_clocks(rcc, &mut gpio);
-    let mut i2c_3 = i2c::init(i2c_3);
 
-    touch::check_family_id(&mut i2c_3).unwrap();
-
-    // clear both buffers
-   /* layer1.clear();
-    layer1.swap_buffers();
-    layer1.clear();
-    layer1.swap_buffers();*/
-
-    let use_double_buffer = true;
-
-    if !use_double_buffer {
+    if !USE_DOUBLE_BUFFER {
         lcd.swap_buffers();
     }
     lcd.swap_buffers();
 
+//    let should_draw_now: interrupts::primask_mutex::PrimaskMutex<bool> = interrupts::primask_mutex::PrimaskMutex::new(false);
+    let mut should_draw_now = false;
+    let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
+
+     let interrupt_handler = interrupt_table
+        .register(
+            interrupts::interrupt_request::InterruptRequest::LcdTft,
+            interrupts::Priority::P1,
+            move ||  {
+                lcd.clr_line_interrupt();
+                if USE_DOUBLE_BUFFER {
+                    lcd.swap_buffers();
+                }
+
+                unsafe {
+                    ptr::write_volatile(should_draw_now_ptr as *mut bool, true);
+                }
+                
+            },
+        )
+        .expect("LcdTft interrupt already used");
+
+            run(&mut framebuffer, &mut i2c_3, should_draw_now_ptr)
+        },
+    )
+}
+
+fn run(
+    //lcd: &mut lcd::Lcd,
+    framebuffer: &mut FramebufferL8,
+    i2c_3: &mut i2c::I2C,
+    should_draw_now_ptr: usize,
+) -> ! {
+
     //// INIT COMPLETE ////
     let mut fps = fps::init();
-    fps.output_enabled = false;
+    fps.output_enabled = ENABLE_FPS_OUTPUT;
 
     let red = &lcd::Color {
         red: 255,
@@ -168,53 +198,48 @@ fn main(hw: board::Hardware) -> ! {
         blue: 255,
         alpha: 255,
     };
-    /*quad(30, 1 + 30, 50, &red, &mut layer1);
-    quad(30, 1 + 30 + 80, 50, &green, &mut layer1);
-    quad(30, 1 + 30 + 80 + 80, 50, &blue, &mut layer1);*/
 
     let mut current_color = red;
 
     let mut running_x = 40;
     let mut running_y = 0;
 
-    let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
-
     
-
-    let mut last_frame = 0;
     loop {
-        let current_time = system_clock::ticks();
-        if current_time - last_frame < 16 {
-            continue;
+        let mut need_draw = false;
+        unsafe {
+            need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
         }
-        last_frame = current_time;
-
-        logic(&mut running_x, &mut running_y);
-        draw(&mut framebuffer, &running_x, &running_y, &current_color);
-        // draw_number(&mut layer1, 0, 10, x);
-        
-         for i in 0..40 {
-            quad(32, 32, 200, current_color, &mut framebuffer);
-       }
-         
-        draw_fps(&mut framebuffer, &mut fps);
-
-        for touch in &touch::touches(&mut i2c_3).unwrap() {
-            framebuffer.set_pixel(touch.x as usize, touch.y as usize, *current_color);
-
-            if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
-                current_color = &red;
-            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
-                current_color = green;
-            } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
-                current_color = blue;
+        if need_draw {
+            unsafe {
+                ptr::write_volatile(should_draw_now_ptr as *mut bool, false);
             }
+            if USE_DOUBLE_BUFFER {
+                framebuffer.swap_buffers();
+            }
+            logic(&mut running_x, &mut running_y);
+            draw(framebuffer, &running_x, &running_y, &current_color);
+            // draw_number(&mut layer1, 0, 10, x);
+
+            //for i in 0..20 {
+                quad(32, 32, 200, current_color, framebuffer);
+            //}
+
+            draw_fps(framebuffer, &mut fps);
+
+            for touch in &touch::touches(i2c_3).unwrap() {
+                framebuffer.set_pixel(touch.x as usize, touch.y as usize, *current_color);
+
+                if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
+                    current_color = &red;
+                } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
+                    current_color = green;
+                } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
+                    current_color = blue;
+                }
+            }
+            fps.count_frame();
         }
-        if use_double_buffer {
-            framebuffer.swap_buffers();
-            lcd.swap_buffers();
-        }
-        fps.count_frame();
     }
 }
 
@@ -350,13 +375,7 @@ fn in_rect(
     pos_x > rect_x && pos_y > rect_y && pos_x < rect_x + rect_width && pos_y < rect_y + rect_height
 }
 
-fn quad(
-    x: usize,
-    y: usize,
-    size: usize,
-    color: &lcd::Color,
-    layer1: &mut lcd::FramebufferL8,
-) {
+fn quad(x: usize, y: usize, size: usize, color: &lcd::Color, layer1: &mut lcd::FramebufferL8) {
     for y in y..y + size {
         for x in x..x + size {
             layer1.set_pixel(x, y, *color);

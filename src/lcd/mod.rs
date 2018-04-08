@@ -82,11 +82,11 @@ pub trait Framebuffer {
 }
 
 pub struct FramebufferL8 {
-    write_to_buffer_2: bool,
-    framebuffer: [u8; WIDTH*HEIGHT],
-    backbuffer: [u8; WIDTH*HEIGHT],
-    framebuffer_addr: *const u8,
-    backbuffer_addr: *const u8,
+    pub write_to_buffer_2: bool,
+    pub framebuffer: [u8; WIDTH*HEIGHT],
+    pub backbuffer: [u8; WIDTH*HEIGHT],
+    pub framebuffer_addr: *const u8,
+    pub backbuffer_addr: *const u8,
 }
 
 impl FramebufferL8 {
@@ -179,6 +179,7 @@ impl Framebuffer for FramebufferL8 {
         } else {
             self.backbuffer = self.framebuffer;
         }
+        self.write_to_buffer_2 = !self.write_to_buffer_2;
 
         /*let src_start_ptr;
         let dest_start_ptr;

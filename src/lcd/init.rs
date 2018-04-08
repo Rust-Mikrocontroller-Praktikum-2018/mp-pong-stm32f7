@@ -76,13 +76,13 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     ltdc.ier.update(|r| {
         r.set_terrie(true); // TRANSFER_ERROR_INTERRUPT_ENABLE
         r.set_fuie(true); // FIFO_UNDERRUN_INTERRUPT_ENABLE
-        // r.set_lie(true); // LINE_INTERRUPT_ENABLE
+        r.set_lie(true); // LINE_INTERRUPT_ENABLE
     });
 
     // set the line the interrupt should happen on
-    // ltdc.lipcr.update(|r| {
-    //     r.set_lipos(HEIGHT);
-    // });
+    ltdc.lipcr.update(|r| {
+        r.set_lipos(HEIGHT+2);
+    });
 
     // configure layers
 
