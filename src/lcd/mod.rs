@@ -15,7 +15,7 @@ mod color;
 const HEIGHT: usize = 272;
 const WIDTH: usize = 480;
 
-const LAYER_1_OCTETS_PER_PIXEL: usize = 2;
+const LAYER_1_OCTETS_PER_PIXEL: usize = 1;
 const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
 
 const SDRAM_START: usize = 0xC000_0000;
@@ -108,14 +108,34 @@ impl Framebuffer for FramebufferL8 {
     }
     fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8) {
         let pixel = y * WIDTH + x;
+        // ARGB8888
 /*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
         unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
 
-        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
-        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) << 8 | 0xff ); };
+        // AL88
+        /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
+        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) | 0xff00 ); };*/
 
+        // L8
         /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
         unsafe { ptr::write_volatile(pixel_ptr, color ); };*/
+
+        // L8 fix(?)
+        let pixel_half = pixel / 2;
+        let is_left_pixel = pixel % 2 == 0;
+        let pixel_ptr = (self.current_base_addr() + pixel_half * 2) as *mut u16;
+        unsafe {
+            if is_left_pixel  {
+                let right_pixel_ptr = (self.current_base_addr() + pixel_half * 2 + 1) as *const u8;
+                let right_pixel = ptr::read_volatile(right_pixel_ptr);
+                ptr::write_volatile(pixel_ptr, (color as u16) | ((right_pixel as u16) <<8) );
+            } else {
+                let left_pixel_ptr = (self.current_base_addr() + pixel_half * 2) as *const u8;
+                let left_pixel = ptr::read_volatile(left_pixel_ptr);
+                ptr::write_volatile(pixel_ptr, (color as u16) << 8 | (left_pixel as u16) );
+            }
+            
+         };
     }
 
     fn swap_buffers(&mut self) {
