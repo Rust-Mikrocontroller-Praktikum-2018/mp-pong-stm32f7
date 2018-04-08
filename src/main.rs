@@ -11,7 +11,8 @@ extern crate stm32f7_discovery as stm32f7;
 use embedded::interfaces::gpio::Gpio;
 use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
 mod lcd; // use custom LCD implementation
-
+use lcd::FramebufferL8;
+use lcd::Framebuffer;
 mod fps;
 
 #[no_mangle]
@@ -48,6 +49,7 @@ pub unsafe extern "C" fn reset() -> ! {
 }
 
 fn main(hw: board::Hardware) -> ! {
+    hprintln!("🔦 Flash complete!\n🚀 Program started.");
     let board::Hardware {
         rcc,
         pwr,
@@ -115,7 +117,14 @@ fn main(hw: board::Hardware) -> ! {
         blue: 0,
         alpha: 255,
     });
-    let mut layer1 = lcd.layer_1().unwrap();
+    // let mut layer1 = lcd.layer_1().unwrap();
+    let mut framebuffer:FramebufferL8 = FramebufferL8::new();
+    lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
+    lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
+    /*let mut layer1  = lcd::Layer {
+                framebuffer: framebuffer,
+    };*/
+    
 
     // init touch screen
     i2c::init_pins_and_clocks(rcc, &mut gpio);
@@ -124,10 +133,10 @@ fn main(hw: board::Hardware) -> ! {
     touch::check_family_id(&mut i2c_3).unwrap();
 
     // clear both buffers
-    layer1.clear();
+   /* layer1.clear();
     layer1.swap_buffers();
     layer1.clear();
-    layer1.swap_buffers();
+    layer1.swap_buffers();*/
 
     let use_double_buffer = true;
 
@@ -180,17 +189,17 @@ fn main(hw: board::Hardware) -> ! {
         last_frame = current_time;
 
         logic(&mut running_x, &mut running_y);
-        draw(&mut layer1, &running_x, &running_y, &current_color);
+        draw(&mut framebuffer, &running_x, &running_y, &current_color);
         // draw_number(&mut layer1, 0, 10, x);
         
-        for i in 0..40 {
-            quad(32, 32, 200, current_color, &mut layer1);
-        }
+         for i in 0..40 {
+            quad(32, 32, 200, current_color, &mut framebuffer);
+       }
          
-        draw_fps(&mut layer1, &mut fps);
+        draw_fps(&mut framebuffer, &mut fps);
 
         for touch in &touch::touches(&mut i2c_3).unwrap() {
-            layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
+            framebuffer.set_pixel(touch.x as usize, touch.y as usize, *current_color);
 
             if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
                 current_color = &red;
@@ -201,7 +210,7 @@ fn main(hw: board::Hardware) -> ! {
             }
         }
         if use_double_buffer {
-            layer1.swap_buffers();
+            framebuffer.swap_buffers();
             lcd.swap_buffers();
         }
         fps.count_frame();
@@ -209,20 +218,20 @@ fn main(hw: board::Hardware) -> ! {
 }
 
 fn draw(
-    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
+    layer1: &mut lcd::FramebufferL8,
     running_x: &usize,
     running_y: &usize,
     current_color: &lcd::Color,
 ) {
     //for _x in 0..1000 {
-    layer1.print_point_color_at(*running_x, *running_y, *current_color);
+    layer1.set_pixel(*running_x, *running_y, *current_color);
 
     // }
     // quad(50, 30, 40, current_color, layer1);
     //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
 }
 
-fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferL8>, fps: &mut fps::FpsCounter) {
+fn draw_fps(layer1: &mut lcd::FramebufferL8, fps: &mut fps::FpsCounter) {
     let mut number = fps.last_fps;
     if number > 99 {
         number = 99;
@@ -230,7 +239,7 @@ fn draw_fps(layer1: &mut lcd::Layer<lcd::FramebufferL8>, fps: &mut fps::FpsCount
     draw_number(layer1, 0, 0, number / 10);
     draw_number(layer1, 5, 0, number % 10);
 }
-fn draw_number(layer1: &mut lcd::Layer<lcd::FramebufferL8>, x: usize, y: usize, number: usize) {
+fn draw_number(layer1: &mut lcd::FramebufferL8, x: usize, y: usize, number: usize) {
     if number == 0 {
         draw_seven_segment(layer1, x, y, true, true, true, false, true, true, true);
     } else if number == 1 {
@@ -254,7 +263,7 @@ fn draw_number(layer1: &mut lcd::Layer<lcd::FramebufferL8>, x: usize, y: usize, 
     }
 }
 fn draw_seven_segment(
-    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
+    layer1: &mut lcd::FramebufferL8,
     x: usize,
     y: usize,
     top: bool,
@@ -345,11 +354,11 @@ fn quad(
     y: usize,
     size: usize,
     color: &lcd::Color,
-    layer1: &mut lcd::Layer<lcd::FramebufferL8>,
+    layer1: &mut lcd::FramebufferL8,
 ) {
     for y in y..y + size {
         for x in x..x + size {
-            layer1.print_point_color_at(x, y, *color);
+            layer1.set_pixel(x, y, *color);
         }
     }
 }

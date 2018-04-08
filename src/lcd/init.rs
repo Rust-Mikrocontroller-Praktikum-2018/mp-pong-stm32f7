@@ -1,4 +1,4 @@
-use super::{LAYER_1_START, LAYER_1_START_2, Lcd};
+use super::{LAYER_1_START, LAYER_1_START_2, Lcd, FramebufferL8};
 use board::ltdc::Ltdc;
 use board::ltdc::L1clutwr;
 use board::rcc::Rcc;
@@ -156,8 +156,8 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
         backlight_enable: backlight_enable,
         layer_1_in_use: false,
         write_to_buffer_2: false,
-        framebuffer: [0; 480*272],
-        backbuffer: [0; 480*272],
+        framebuffer_addr: LAYER_1_START as u32,
+        backbuffer_addr: LAYER_1_START_2 as u32,
     }
 }
 

@@ -30,32 +30,32 @@ pub struct Lcd {
     backlight_enable: OutputPin,
     layer_1_in_use: bool,
     write_to_buffer_2: bool,
-    framebuffer: [u8; WIDTH*HEIGHT],
-    backbuffer: [u8; WIDTH*HEIGHT],
+    pub framebuffer_addr: u32,
+    pub backbuffer_addr: u32,
 }
 
 impl Lcd {
     pub fn set_background_color(&mut self, color: Color) {
         self.controller.bccr.update(|r| r.set_bc(color.to_rgb()));
     }
-
-    pub fn layer_1(&mut self) -> Option<Layer<FramebufferL8>> {
+   pub fn layer_1(&mut self) -> Option<Layer<FramebufferL8>> {
         if self.layer_1_in_use {
             None
         } else {
             Some(Layer {
-                framebuffer: FramebufferL8::new((&self.framebuffer[0] as *const u8) as usize, (&self.backbuffer[0] as *const u8) as usize),
+                framebuffer: FramebufferL8::new(),
             })
         }
     } 
+
     pub fn swap_buffers(&mut self) {
         if self.write_to_buffer_2 {
-            let framebuffer_addr = (&self.framebuffer[0] as *const u8) as u32;
+            let framebuffer_addr = self.framebuffer_addr;
             self.controller
                 .l1cfbar
                 .update(|r| r.set_cfbadd(framebuffer_addr));
         } else {
-            let backbuffer_addr = (&self.backbuffer[0] as *const u8) as u32;
+            let backbuffer_addr = self.backbuffer_addr;
             self.controller
                 .l1cfbar
                 .update(|r| r.set_cfbadd(backbuffer_addr));
@@ -65,13 +65,6 @@ impl Lcd {
         self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
 
         self.write_to_buffer_2 = !self.write_to_buffer_2;
-    }
-
-    pub fn set_framebuffer(&mut self, framebuffer_ptr: u32) {
-        self.controller
-                .l1cfbar
-                .update(|r| r.set_cfbadd(framebuffer_ptr));
-        self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
     }
 
     pub fn clr_line_interrupt(&mut self) {
@@ -89,28 +82,35 @@ pub trait Framebuffer {
 }
 
 pub struct FramebufferL8 {
-    base_addr: usize,
-    base_addr_2: usize,
     write_to_buffer_2: bool,
-    
+    framebuffer: [u8; WIDTH*HEIGHT],
+    backbuffer: [u8; WIDTH*HEIGHT],
 }
 
 impl FramebufferL8 {
-    fn new(base_addr: usize, base_addr_2: usize) -> Self {
+    pub fn new() -> Self {
         let write_to_buffer_2 = false;
         FramebufferL8 {
-            base_addr,
-            base_addr_2,
             write_to_buffer_2,
+            framebuffer: [0; WIDTH*HEIGHT],
+            backbuffer: [0; WIDTH*HEIGHT],
         }
     }
 
     fn current_base_addr(&mut self) -> usize {
         if self.write_to_buffer_2 {
-            self.base_addr_2
+            self.get_backbuffer_addr() as usize
         } else {
-            self.base_addr
+            self.get_framebuffer_addr() as usize
         }
+    }
+
+    pub fn get_framebuffer_addr(&self) -> *const u8 {
+        &self.framebuffer[0] as *const u8
+    }
+
+    pub fn get_backbuffer_addr(&self) -> *const u8 {
+        &self.backbuffer[0] as *const u8
     }
 }
 
@@ -129,6 +129,12 @@ impl Framebuffer for FramebufferL8 {
         unsafe { ptr::write_volatile(pixel_ptr, (color as u16) | 0xff00 ); };*/
 
         // L8
+        /*if self.write_to_buffer_2 {
+            self.backbuffer[pixel] = color;
+        } else {
+            self.framebuffer[pixel] = color;
+        }*/
+
         let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
         unsafe { ptr::write_volatile(pixel_ptr, color ); };
 
@@ -155,12 +161,12 @@ impl Framebuffer for FramebufferL8 {
         let dest_start_ptr;
 
         if self.write_to_buffer_2 {
-            src_start_ptr = self.base_addr_2 as *mut u32;
-            dest_start_ptr = self.base_addr as *mut u32;
+            src_start_ptr = self.get_backbuffer_addr() as *mut u32;
+            dest_start_ptr = self.get_framebuffer_addr() as *mut u32;
             
         } else {
-            src_start_ptr = self.base_addr as *mut u32;
-            dest_start_ptr = self.base_addr_2 as *mut u32;
+            src_start_ptr = self.get_framebuffer_addr() as *mut u32;
+            dest_start_ptr = self.get_backbuffer_addr() as *mut u32;
         }
 
         self.write_to_buffer_2 = !self.write_to_buffer_2;
@@ -213,7 +219,7 @@ impl Framebuffer for FramebufferL8 {
 }
 
 pub struct Layer<T> {
-    framebuffer: T,
+    pub framebuffer: T,
 }
 
 impl<T: Framebuffer> Layer<T> {
