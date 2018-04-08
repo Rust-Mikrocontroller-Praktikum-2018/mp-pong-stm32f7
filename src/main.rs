@@ -169,6 +169,8 @@ fn main(hw: board::Hardware) -> ! {
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
 
+    
+
     let mut last_frame = 0;
     loop {
         let current_time = system_clock::ticks();
@@ -178,12 +180,12 @@ fn main(hw: board::Hardware) -> ! {
         last_frame = current_time;
 
         logic(&mut running_x, &mut running_y);
-        draw(&mut layer1, &running_x, &running_y, &green);
+        draw(&mut layer1, &running_x, &running_y, &current_color);
         // draw_number(&mut layer1, 0, 10, x);
         
-//        for i in 0..20 {
+        for i in 0..40 {
             quad(32, 32, 200, current_color, &mut layer1);
-        //}
+        }
          
         draw_fps(&mut layer1, &mut fps);
 
@@ -199,8 +201,8 @@ fn main(hw: board::Hardware) -> ! {
             }
         }
         if use_double_buffer {
-            lcd.swap_buffers();
             layer1.swap_buffers();
+            lcd.swap_buffers();
         }
         fps.count_frame();
     }

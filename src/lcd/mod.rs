@@ -15,7 +15,7 @@ mod color;
 const HEIGHT: usize = 272;
 const WIDTH: usize = 480;
 
-const LAYER_1_OCTETS_PER_PIXEL: usize = 2;
+const LAYER_1_OCTETS_PER_PIXEL: usize = 1;
 const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
 
 const SDRAM_START: usize = 0xC000_0000;
@@ -30,6 +30,8 @@ pub struct Lcd {
     backlight_enable: OutputPin,
     layer_1_in_use: bool,
     write_to_buffer_2: bool,
+    framebuffer: [u8; WIDTH*HEIGHT],
+    backbuffer: [u8; WIDTH*HEIGHT],
 }
 
 impl Lcd {
@@ -42,25 +44,34 @@ impl Lcd {
             None
         } else {
             Some(Layer {
-                framebuffer: FramebufferL8::new(LAYER_1_START, LAYER_1_START_2),
+                framebuffer: FramebufferL8::new((&self.framebuffer[0] as *const u8) as usize, (&self.backbuffer[0] as *const u8) as usize),
             })
         }
     } 
     pub fn swap_buffers(&mut self) {
         if self.write_to_buffer_2 {
+            let framebuffer_addr = (&self.framebuffer[0] as *const u8) as u32;
             self.controller
                 .l1cfbar
-                .update(|r| r.set_cfbadd(LAYER_1_START as u32));
+                .update(|r| r.set_cfbadd(framebuffer_addr));
         } else {
+            let backbuffer_addr = (&self.backbuffer[0] as *const u8) as u32;
             self.controller
                 .l1cfbar
-                .update(|r| r.set_cfbadd(LAYER_1_START_2 as u32));
+                .update(|r| r.set_cfbadd(backbuffer_addr));
         }
         
         // reload shadow registers
         self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
 
         self.write_to_buffer_2 = !self.write_to_buffer_2;
+    }
+
+    pub fn set_framebuffer(&mut self, framebuffer_ptr: u32) {
+        self.controller
+                .l1cfbar
+                .update(|r| r.set_cfbadd(framebuffer_ptr));
+        self.controller.srcr.update(|r| r.set_imr(true)); // IMMEDIATE_RELOAD
     }
 
     pub fn clr_line_interrupt(&mut self) {
@@ -81,6 +92,7 @@ pub struct FramebufferL8 {
     base_addr: usize,
     base_addr_2: usize,
     write_to_buffer_2: bool,
+    
 }
 
 impl FramebufferL8 {
@@ -113,12 +125,12 @@ impl Framebuffer for FramebufferL8 {
         unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
 
         // AL88
-        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
-        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) | 0xff00 ); };
+        /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
+        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) | 0xff00 ); };*/
 
         // L8
-        /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
-        unsafe { ptr::write_volatile(pixel_ptr, color ); };*/
+        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
+        unsafe { ptr::write_volatile(pixel_ptr, color ); };
 
         // L8 fix(?)
         /*let pixel_half = pixel / 2;
@@ -143,12 +155,12 @@ impl Framebuffer for FramebufferL8 {
         let dest_start_ptr;
 
         if self.write_to_buffer_2 {
-            src_start_ptr = LAYER_1_START_2 as *mut u32;
-            dest_start_ptr = LAYER_1_START as *mut u32;
+            src_start_ptr = self.base_addr_2 as *mut u32;
+            dest_start_ptr = self.base_addr as *mut u32;
             
         } else {
-            src_start_ptr = LAYER_1_START as *mut u32;
-            dest_start_ptr = LAYER_1_START_2 as *mut u32;
+            src_start_ptr = self.base_addr as *mut u32;
+            dest_start_ptr = self.base_addr_2 as *mut u32;
         }
 
         self.write_to_buffer_2 = !self.write_to_buffer_2;
@@ -235,4 +247,6 @@ impl<T: Framebuffer> Layer<T> {
     pub fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8) {
         self.framebuffer.set_pixel_direct(x, y, color);
     }
+
+    
 }

@@ -99,7 +99,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     });
 
     // specify pixed format
-    ltdc.l1pfcr.update(|r| r.set_pf(0b111)); // set_pixel_format to L8
+    ltdc.l1pfcr.update(|r| r.set_pf(0b101)); // set_pixel_format to L8
 
     // configure default color values
     ltdc.l1dccr.update(|r| {
@@ -137,7 +137,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
 
     ltdc.l1cr.update(|r| {
         r.set_len(true); // enable layer 1
-        r.set_cluten(true); // enable CLUT for layer 1
+        //r.set_cluten(true); // enable CLUT for layer 1
     });
 
     // reload shadow registers
@@ -156,6 +156,8 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
         backlight_enable: backlight_enable,
         layer_1_in_use: false,
         write_to_buffer_2: false,
+        framebuffer: [0; 480*272],
+        backbuffer: [0; 480*272],
     }
 }
 
