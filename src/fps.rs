@@ -27,7 +27,7 @@ impl FpsCounter {
             self.last_fps = self.frames;
             self.last_print = current_ticks;
             if self.output_enabled {
-                hprintln!("FPS: {}" , self.frames);
+                hprintln!("FPS: {}", self.frames);
             }
             self.frames = 0;
         }

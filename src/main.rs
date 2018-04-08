@@ -15,9 +15,11 @@ use lcd::Framebuffer;
 use lcd::FramebufferL8;
 mod fps;
 use core::ptr;
+mod graphics;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
+const PRINT_START_MESSAGE: bool = true;
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -53,7 +55,9 @@ pub unsafe extern "C" fn reset() -> ! {
 }
 
 fn main(hw: board::Hardware) -> ! {
-    hprintln!("[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
+    if PRINT_START_MESSAGE {
+        hprintln!("[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
+    }
     let board::Hardware {
         rcc,
         pwr,
@@ -82,163 +86,144 @@ fn main(hw: board::Hardware) -> ! {
     interrupts::scope(
         nvic,
         |_| {},
-         move |interrupt_table| {
-    let mut gpio = Gpio::new(
-        gpio_a,
-        gpio_b,
-        gpio_c,
-        gpio_d,
-        gpio_e,
-        gpio_f,
-        gpio_g,
-        gpio_h,
-        gpio_i,
-        gpio_j,
-        gpio_k,
-    );
+        move |interrupt_table| {
+            let mut gpio = Gpio::new(
+                gpio_a,
+                gpio_b,
+                gpio_c,
+                gpio_d,
+                gpio_e,
+                gpio_f,
+                gpio_g,
+                gpio_h,
+                gpio_i,
+                gpio_j,
+                gpio_k,
+            );
 
-    system_clock::init(rcc, pwr, flash);
+            system_clock::init(rcc, pwr, flash);
 
-    // enable all gpio ports
-    rcc.ahb1enr.update(|r| {
-        r.set_gpioaen(true);
-        r.set_gpioben(true);
-        r.set_gpiocen(true);
-        r.set_gpioden(true);
-        r.set_gpioeen(true);
-        r.set_gpiofen(true);
-        r.set_gpiogen(true);
-        r.set_gpiohen(true);
-        r.set_gpioien(true);
-        r.set_gpiojen(true);
-        r.set_gpioken(true);
-    });
+            // enable all gpio ports
+            rcc.ahb1enr.update(|r| {
+                r.set_gpioaen(true);
+                r.set_gpioben(true);
+                r.set_gpiocen(true);
+                r.set_gpioden(true);
+                r.set_gpioeen(true);
+                r.set_gpiofen(true);
+                r.set_gpiogen(true);
+                r.set_gpiohen(true);
+                r.set_gpioien(true);
+                r.set_gpiojen(true);
+                r.set_gpioken(true);
+            });
 
-    // init sdram (for display)
-    sdram::init(rcc, fmc, &mut gpio);
+            // init sdram (for display)
+            sdram::init(rcc, fmc, &mut gpio);
 
+            // init touch screen
+            i2c::init_pins_and_clocks(rcc, &mut gpio);
+            let mut i2c_3 = i2c::init(i2c_3);
+            touch::check_family_id(&mut i2c_3).unwrap();
 
-    // init touch screen
-    i2c::init_pins_and_clocks(rcc, &mut gpio);
-    let mut i2c_3 = i2c::init(i2c_3);
-    touch::check_family_id(&mut i2c_3).unwrap();
+            let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
+            lcd.set_background_color(lcd::Color {
+                red: 0,
+                green: 0,
+                blue: 0,
+                alpha: 255,
+            });
+            let mut framebuffer = FramebufferL8::new();
+            framebuffer.init();
+            lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
+            lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
 
-    let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
-    lcd.set_background_color(lcd::Color {
-        red: 0,
-        green: 0,
-        blue: 0,
-        alpha: 255,
-    });
-    // let mut layer1 = lcd.layer_1().unwrap();
-    let mut framebuffer = FramebufferL8::new();
-    framebuffer.init();
-    lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
-    lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
+            if !USE_DOUBLE_BUFFER {
+                lcd.swap_buffers();
+            }
+            lcd.swap_buffers();
 
+            let should_draw_now = false;
+            let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
 
-    if !USE_DOUBLE_BUFFER {
-        lcd.swap_buffers();
-    }
-    lcd.swap_buffers();
-
-//    let should_draw_now: interrupts::primask_mutex::PrimaskMutex<bool> = interrupts::primask_mutex::PrimaskMutex::new(false);
-    let mut should_draw_now = false;
-    let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
-
-     let interrupt_handler = interrupt_table
-        .register(
-            interrupts::interrupt_request::InterruptRequest::LcdTft,
-            interrupts::Priority::P1,
-            move ||  {
-                lcd.clr_line_interrupt();
-                if USE_DOUBLE_BUFFER {
-                    lcd.swap_buffers();
-                }
-
-                unsafe {
-                    ptr::write_volatile(should_draw_now_ptr as *mut bool, true);
-                }
-                
-            },
-        )
-        .expect("LcdTft interrupt already used");
+            let interrupt_handler = interrupt_table
+                .register(
+                    interrupts::interrupt_request::InterruptRequest::LcdTft,
+                    interrupts::Priority::P1,
+                    move || {
+                        unsafe {
+                            let need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
+                            if !need_draw {
+                                if USE_DOUBLE_BUFFER {
+                                    lcd.swap_buffers();
+                                }
+                                ptr::write_volatile(should_draw_now_ptr as *mut bool, true);
+                            }
+                        }
+                        lcd.clr_line_interrupt();
+                    },
+                )
+                .expect("LcdTft interrupt already used");
 
             run(&mut framebuffer, &mut i2c_3, should_draw_now_ptr)
         },
     )
 }
 
-fn run(
-    //lcd: &mut lcd::Lcd,
-    framebuffer: &mut FramebufferL8,
-    i2c_3: &mut i2c::I2C,
-    should_draw_now_ptr: usize,
-) -> ! {
-
+fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_ptr: usize) -> ! {
+    hprintln!("Start run()");
     //// INIT COMPLETE ////
     let mut fps = fps::init();
     fps.output_enabled = ENABLE_FPS_OUTPUT;
 
-    let red = &lcd::Color {
-        red: 255,
-        green: 0,
-        blue: 0,
-        alpha: 255,
-    };
-    let green = &lcd::Color {
-        red: 128,
-        green: 255,
-        blue: 0,
-        alpha: 255,
-    };
-    let blue = &lcd::Color {
-        red: 0,
-        green: 0,
-        blue: 255,
-        alpha: 255,
-    };
-
-    let mut current_color = red;
+    let mut current_color = 255;
 
     let mut running_x = 40;
     let mut running_y = 0;
 
-    
     loop {
         let mut need_draw = false;
         unsafe {
+            // Frame synchronisation
             need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
         }
         if need_draw {
-            unsafe {
-                ptr::write_volatile(should_draw_now_ptr as *mut bool, false);
-            }
             if USE_DOUBLE_BUFFER {
                 framebuffer.swap_buffers();
             }
-            logic(&mut running_x, &mut running_y);
-            draw(framebuffer, &running_x, &running_y, &current_color);
-            // draw_number(&mut layer1, 0, 10, x);
 
-            //for i in 0..20 {
-                quad(32, 32, 200, current_color, framebuffer);
-            //}
+            game_loop(&mut running_x, &mut running_y, framebuffer, &mut current_color, i2c_3, &fps);
 
-            draw_fps(framebuffer, &mut fps);
-
-            for touch in &touch::touches(i2c_3).unwrap() {
-                framebuffer.set_pixel(touch.x as usize, touch.y as usize, *current_color);
-
-                if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
-                    current_color = &red;
-                } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
-                    current_color = green;
-                } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
-                    current_color = blue;
-                }
-            }
+            // end of frame
             fps.count_frame();
+            unsafe {
+                ptr::write_volatile(should_draw_now_ptr as *mut bool, false);
+            }
+        }
+    }
+}
+
+fn game_loop(running_x: &mut usize, running_y: &mut usize, framebuffer: &mut FramebufferL8, current_color: &mut u8, i2c_3: &mut i2c::I2C, fps: &fps::FpsCounter) {
+    logic(running_x, running_y);
+
+
+    for i in 0..10 {
+        //framebuffer.clear();
+        graphics::quad(32, 32, 200, current_color, framebuffer);
+    }
+
+    draw(framebuffer, &running_x, &running_y, &current_color);
+    graphics::draw_fps(framebuffer, fps);
+
+    for touch in &touch::touches(i2c_3).unwrap() {
+        framebuffer.set_pixel_direct(touch.x as usize, touch.y as usize, *current_color);
+
+        if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
+            *current_color = 255;
+        } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
+            *current_color = 128;
+        } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
+            *current_color = 0;
         }
     }
 }
@@ -247,78 +232,9 @@ fn draw(
     layer1: &mut lcd::FramebufferL8,
     running_x: &usize,
     running_y: &usize,
-    current_color: &lcd::Color,
+    current_color: &u8,
 ) {
-    //for _x in 0..1000 {
-    layer1.set_pixel(*running_x, *running_y, *current_color);
-
-    // }
-    // quad(50, 30, 40, current_color, layer1);
-    //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
-}
-
-fn draw_fps(layer1: &mut lcd::FramebufferL8, fps: &mut fps::FpsCounter) {
-    let mut number = fps.last_fps;
-    if number > 99 {
-        number = 99;
-    }
-    draw_number(layer1, 0, 0, number / 10);
-    draw_number(layer1, 5, 0, number % 10);
-}
-fn draw_number(layer1: &mut lcd::FramebufferL8, x: usize, y: usize, number: usize) {
-    if number == 0 {
-        draw_seven_segment(layer1, x, y, true, true, true, false, true, true, true);
-    } else if number == 1 {
-        draw_seven_segment(layer1, x, y, false, false, true, false, false, true, false);
-    } else if number == 2 {
-        draw_seven_segment(layer1, x, y, true, false, true, true, true, false, true);
-    } else if number == 3 {
-        draw_seven_segment(layer1, x, y, true, false, true, true, false, true, true);
-    } else if number == 4 {
-        draw_seven_segment(layer1, x, y, false, true, true, true, false, true, false);
-    } else if number == 5 {
-        draw_seven_segment(layer1, x, y, true, true, false, true, false, true, true);
-    } else if number == 6 {
-        draw_seven_segment(layer1, x, y, true, true, false, true, true, true, true);
-    } else if number == 7 {
-        draw_seven_segment(layer1, x, y, true, false, true, false, false, true, false);
-    } else if number == 8 {
-        draw_seven_segment(layer1, x, y, true, true, true, true, true, true, true);
-    } else if number == 9 {
-        draw_seven_segment(layer1, x, y, true, true, true, true, false, true, true);
-    }
-}
-fn draw_seven_segment(
-    layer1: &mut lcd::FramebufferL8,
-    x: usize,
-    y: usize,
-    top: bool,
-    top_left: bool,
-    top_right: bool,
-    center: bool,
-    bottom_left: bool,
-    bottom_right: bool,
-    bottom: bool,
-) {
-    let black = 0;
-    let white = 255;
-    layer1.set_pixel_direct(x + 0, y + 0, if top { white } else { black });
-    layer1.set_pixel_direct(x + 1, y + 0, if top { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 0, if top { white } else { black });
-    layer1.set_pixel_direct(x + 0, y + 1, if top_left { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 1, if top_right { white } else { black });
-    layer1.set_pixel_direct(x + 0, y + 2, if top_left { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 2, if top_right { white } else { black });
-    layer1.set_pixel_direct(x + 0, y + 3, if center { white } else { black });
-    layer1.set_pixel_direct(x + 1, y + 3, if center { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 3, if center { white } else { black });
-    layer1.set_pixel_direct(x + 0, y + 4, if bottom_left { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 4, if bottom_right { white } else { black });
-    layer1.set_pixel_direct(x + 0, y + 5, if bottom_left { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 5, if bottom_right { white } else { black });
-    layer1.set_pixel_direct(x + 0, y + 6, if bottom { white } else { black });
-    layer1.set_pixel_direct(x + 1, y + 6, if bottom { white } else { black });
-    layer1.set_pixel_direct(x + 2, y + 6, if bottom { white } else { black });
+    layer1.set_pixel_direct(*running_x, *running_y, *current_color);
 }
 
 fn logic(running_x: &mut usize, running_y: &mut usize) {
@@ -375,10 +291,3 @@ fn in_rect(
     pos_x > rect_x && pos_y > rect_y && pos_x < rect_x + rect_width && pos_y < rect_y + rect_height
 }
 
-fn quad(x: usize, y: usize, size: usize, color: &lcd::Color, layer1: &mut lcd::FramebufferL8) {
-    for y in y..y + size {
-        for x in x..x + size {
-            layer1.set_pixel(x, y, *color);
-        }
-    }
-}
