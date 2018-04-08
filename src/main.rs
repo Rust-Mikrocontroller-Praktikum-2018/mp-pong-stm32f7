@@ -56,7 +56,7 @@ pub unsafe extern "C" fn reset() -> ! {
 
 fn main(hw: board::Hardware) -> ! {
     if PRINT_START_MESSAGE {
-        hprintln!("[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
+        hprintln!("\n[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
     }
     let board::Hardware {
         rcc,
@@ -208,7 +208,7 @@ fn game_loop(running_x: &mut usize, running_y: &mut usize, framebuffer: &mut Fra
 
 
     for i in 0..10 {
-        //framebuffer.clear();
+        framebuffer.clear();
         graphics::quad(32, 32, 200, current_color, framebuffer);
     }
 
