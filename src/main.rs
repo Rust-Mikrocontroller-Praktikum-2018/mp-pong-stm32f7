@@ -118,7 +118,8 @@ fn main(hw: board::Hardware) -> ! {
         alpha: 255,
     });
     // let mut layer1 = lcd.layer_1().unwrap();
-    let mut framebuffer:FramebufferL8 = FramebufferL8::new();
+    let mut framebuffer = FramebufferL8::new();
+    framebuffer.init();
     lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
     lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
     /*let mut layer1  = lcd::Layer {

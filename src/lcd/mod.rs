@@ -85,16 +85,27 @@ pub struct FramebufferL8 {
     write_to_buffer_2: bool,
     framebuffer: [u8; WIDTH*HEIGHT],
     backbuffer: [u8; WIDTH*HEIGHT],
+    framebuffer_addr: *const u8,
+    backbuffer_addr: *const u8,
 }
 
 impl FramebufferL8 {
     pub fn new() -> Self {
         let write_to_buffer_2 = false;
+
         FramebufferL8 {
             write_to_buffer_2,
             framebuffer: [0; WIDTH*HEIGHT],
             backbuffer: [0; WIDTH*HEIGHT],
+            framebuffer_addr: 0 as *const u8,
+            backbuffer_addr: 0 as *const u8,
         }
+    }
+
+    pub fn init(&mut self) {
+        // need to set these intern addresses correct
+        self.framebuffer_addr = &(self.framebuffer[0]) as *const u8;
+        self.backbuffer_addr = &(self.backbuffer[0]) as *const u8;
     }
 
     fn current_base_addr(&mut self) -> usize {
@@ -106,11 +117,13 @@ impl FramebufferL8 {
     }
 
     pub fn get_framebuffer_addr(&self) -> *const u8 {
-        &self.framebuffer[0] as *const u8
+        self.framebuffer_addr
+        // &(self.framebuffer[0]) as *const u8
     }
 
     pub fn get_backbuffer_addr(&self) -> *const u8 {
-        &self.backbuffer[0] as *const u8
+        self.backbuffer_addr
+        // &(self.backbuffer[0]) as *const u8
     }
 }
 
@@ -129,7 +142,9 @@ impl Framebuffer for FramebufferL8 {
         unsafe { ptr::write_volatile(pixel_ptr, (color as u16) | 0xff00 ); };*/
 
         // L8
-        /*if self.write_to_buffer_2 {
+        /*
+        // This is horribly slow... why?
+        if self.write_to_buffer_2 {
             self.backbuffer[pixel] = color;
         } else {
             self.framebuffer[pixel] = color;
@@ -157,7 +172,15 @@ impl Framebuffer for FramebufferL8 {
     }
 
     fn swap_buffers(&mut self) {
-        let src_start_ptr;
+
+        // here this is faster than the alternative below 
+        if self.write_to_buffer_2 {
+            self.framebuffer = self.backbuffer;
+        } else {
+            self.backbuffer = self.framebuffer;
+        }
+
+        /*let src_start_ptr;
         let dest_start_ptr;
 
         if self.write_to_buffer_2 {
@@ -184,7 +207,7 @@ impl Framebuffer for FramebufferL8 {
                 dest_start_ptr,
                 count,
             );
-        } 
+        } */
     }
 
     fn copy_full(&mut self, src_start_ptr: *const u8) {
