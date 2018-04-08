@@ -138,9 +138,7 @@ fn main(hw: board::Hardware) -> ! {
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
-    // fps.output_enabled = true;
-
-
+    fps.output_enabled = true;
 
     let red = &lcd::Color {
         red: 255,
@@ -170,14 +168,21 @@ fn main(hw: board::Hardware) -> ! {
     let mut running_y = 0;
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
+
+    let mut last_frame = system_clock::ticks();
     loop {
+        let current_time = system_clock::ticks();
+        if current_time - last_frame < 16 {
+            continue;
+        }
+        last_frame = current_time;
+
         logic(&mut running_x, &mut running_y);
         draw(&mut layer1, &running_x, &running_y, &green);
         // draw_number(&mut layer1, 0, 10, x);
         draw_fps(&mut layer1, &mut fps);
-        
 
-        quad(32, 32, 50, current_color, &mut layer1);
+        quad(32, 32, 200, current_color, &mut layer1);
 
         for touch in &touch::touches(&mut i2c_3).unwrap() {
             layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
@@ -206,7 +211,7 @@ fn draw(
 ) {
     //for _x in 0..1000 {
     layer1.print_point_color_at(*running_x, *running_y, *current_color);
-    
+
     // }
     // quad(50, 30, 40, current_color, layer1);
     //  quad(0,0, 20, &lcd::Color::rgb(0,0,0), layer1);
