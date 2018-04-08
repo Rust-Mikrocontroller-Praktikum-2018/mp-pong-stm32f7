@@ -15,7 +15,7 @@ mod color;
 const HEIGHT: usize = 272;
 const WIDTH: usize = 480;
 
-const LAYER_1_OCTETS_PER_PIXEL: usize = 1;
+const LAYER_1_OCTETS_PER_PIXEL: usize = 2;
 const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
 
 const SDRAM_START: usize = 0xC000_0000;
@@ -111,8 +111,11 @@ impl Framebuffer for FramebufferL8 {
 /*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
         unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
 
-        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
-        unsafe { ptr::write_volatile(pixel_ptr, color ); };
+        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
+        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) << 8 | 0xff ); };
+
+/*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
+        unsafe { ptr::write_volatile(pixel_ptr, color ); };*/
     }
 
     fn swap_buffers(&mut self) {
@@ -133,6 +136,9 @@ impl Framebuffer for FramebufferL8 {
         let mut count = WIDTH * HEIGHT;
         if LAYER_1_OCTETS_PER_PIXEL == 1 {
             count /= 4;                  // we only store u8 for every pixel
+        }
+        if LAYER_1_OCTETS_PER_PIXEL == 2 {
+            count /= 2;
         }
         unsafe {
             ptr::copy_nonoverlapping(

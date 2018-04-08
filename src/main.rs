@@ -129,7 +129,7 @@ fn main(hw: board::Hardware) -> ! {
     layer1.clear();
     layer1.swap_buffers();
 
-    let use_double_buffer = false;
+    let use_double_buffer = true;
 
     if !use_double_buffer {
         lcd.swap_buffers();
@@ -138,7 +138,7 @@ fn main(hw: board::Hardware) -> ! {
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
-    fps.output_enabled = true;
+    fps.output_enabled = false;
 
     let red = &lcd::Color {
         red: 255,
@@ -182,7 +182,9 @@ fn main(hw: board::Hardware) -> ! {
         // draw_number(&mut layer1, 0, 10, x);
         draw_fps(&mut layer1, &mut fps);
 
-        quad(32, 32, 200, current_color, &mut layer1);
+         for i in 0..10 {
+            quad(32, 32, 200, current_color, &mut layer1);
+         }
 
         for touch in &touch::touches(&mut i2c_3).unwrap() {
             layer1.print_point_color_at(touch.x as usize, touch.y as usize, *current_color);
