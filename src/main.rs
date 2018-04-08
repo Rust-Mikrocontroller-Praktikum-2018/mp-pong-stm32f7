@@ -138,7 +138,7 @@ fn main(hw: board::Hardware) -> ! {
 
     //// INIT COMPLETE ////
     let mut fps = fps::init();
-    fps.output_enabled = true;
+    fps.output_enabled = false;
 
     let red = &lcd::Color {
         red: 255,
@@ -169,7 +169,7 @@ fn main(hw: board::Hardware) -> ! {
 
     let should_draw_now = interrupts::primask_mutex::PrimaskMutex::new(false);
 
-    let mut last_frame = system_clock::ticks();
+    let mut last_frame = 0;
     loop {
         let current_time = system_clock::ticks();
         if current_time - last_frame < 16 {
@@ -181,9 +181,9 @@ fn main(hw: board::Hardware) -> ! {
         draw(&mut layer1, &running_x, &running_y, &green);
         // draw_number(&mut layer1, 0, 10, x);
         
-        for i in 0..20 {
+//        for i in 0..20 {
             quad(32, 32, 200, current_color, &mut layer1);
-        }
+        //}
          
         draw_fps(&mut layer1, &mut fps);
 
