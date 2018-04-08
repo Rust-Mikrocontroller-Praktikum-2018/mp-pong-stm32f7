@@ -69,7 +69,7 @@ impl Lcd {
         self.controller.icr.write(clr_flags);
     }
 }
-
+ 
 pub trait Framebuffer {
     fn set_pixel(&mut self, x: usize, y: usize, color: Color);
     fn set_pixel_direct(&mut self, x: usize, y: usize, color: u8);
@@ -111,11 +111,11 @@ impl Framebuffer for FramebufferL8 {
 /*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
         unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
 
-        /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
-        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) << 8 | 0xff ); };*/
+        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
+        unsafe { ptr::write_volatile(pixel_ptr, (color as u16) << 8 | 0xff ); };
 
-        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
-        unsafe { ptr::write_volatile(pixel_ptr, color ); };
+        /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u8;
+        unsafe { ptr::write_volatile(pixel_ptr, color ); };*/
     }
 
     fn swap_buffers(&mut self) {
