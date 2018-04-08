@@ -49,7 +49,7 @@ pub unsafe extern "C" fn reset() -> ! {
 }
 
 fn main(hw: board::Hardware) -> ! {
-    hprintln!("🔦 Flash complete!\n🚀 Program started.");
+    hprintln!("[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
     let board::Hardware {
         rcc,
         pwr,

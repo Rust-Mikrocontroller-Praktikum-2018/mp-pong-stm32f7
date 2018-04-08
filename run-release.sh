@@ -1,7 +1,7 @@
 #!/bin/bash
 tput setaf 44
 tput bold
-echo "🚧 Build now❓"
+echo "🚧 Build now? ❓"
 while true; do
 
     tput sgr0
@@ -13,21 +13,22 @@ while true; do
     if [[ $? == 0 ]]; then
         tput setaf 40
         tput bold
-        echo "✔️  Build successful!"
+        echo "🚧 Build successful! ✔️"
         tput setaf 33
-        echo "🚀 Running..."
+        echo "🔦 Flashing..."
         tput sgr0
         echo -e "c\nq\n" | ./gdb-release.sh
-        echo "🚀 Run finished!"
+        tput setaf 248
+        tput bold
+        echo -e "\n🚀 Run finished."
     else
         tput setaf 9
         tput bold
-        echo "❌ Build failed!"
-        sleep 1
+        echo "🚧 Build failed! ❌"
     fi
-    echo -e "\n\n"
+    echo -e "\n"
     tput setaf 44
     tput bold
-    echo "🚧 Build again❓"       
+    echo "🚧 Build again? ❓"       
 done
 
