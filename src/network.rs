@@ -1,4 +1,4 @@
-struct GamestatePacket {
+pub struct GamestatePacket {
     rackets: [RacketPacket; 22],
     ball: BallPacket,
     score: [u8; 2],
@@ -16,7 +16,7 @@ struct BallPacket {
     y_vel: s16,
 }
 
-struct InputPacket {
+pub struct InputPacket {
     up: bool,
     down: bool,
 }
@@ -55,7 +55,7 @@ trait Server {
     fn send_gamestate(&mut self, gamestate: &GamestatePacket);
 }
 
-struct LocalClient {
+pub struct LocalClient {
     gamestate: GamestatePacket,
     input: InputPacket,
 }
@@ -71,14 +71,14 @@ impl LocalClient {
 
 impl Client for LocalClient {
     fn send_input(&mut self, input: &InputPacket) {
-        self.input = input;
+        self.input = *input;
     }
     fn receive_gamestate(&self) -> GamestatePacket {
         return self.gamestate;
     }
 }
 
-struct LocalServer {
+pub struct LocalServer {
     gamestate: GamestatePacket,
     player_inputs: [InputPacket; 2],
 }
@@ -97,11 +97,11 @@ impl Server for LocalServer {
         return self.player_inputs;
     }
     fn send_gamestate(&mut self, gamestate: &GamestatePacket) {
-        self.gamestate = gamestate;
+        self.gamestate = *gamestate;
     }
 }
 
-pub fn handle_local(client1: &mut Client, client2: &mut Client, server: &mut Server) {
+pub fn handle_local(client1: &mut LocalClient, client2: &mut LocalClient, server: &mut LocalServer) {
     client1.gamestate = server.gamestate;
     client2.gamestate = server.gamestate;
     server.player_inputs = [client1.input, client2.input];

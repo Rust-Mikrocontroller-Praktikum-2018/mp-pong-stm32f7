@@ -235,10 +235,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
             }
 
             game_loop(
-                &mut running_x,
-                &mut running_y,
                 framebuffer,
-                &mut current_color,
                 i2c_3,
                 &fps,
                 &mut rackets,
@@ -258,10 +255,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
 }
 
 fn game_loop(
-    running_x: &mut usize,
-    running_y: &mut usize,
     framebuffer: &mut FramebufferL8,
-    current_color: &mut u8,
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
@@ -278,6 +272,7 @@ fn game_loop(
     network::handle_local(client1, client2, server);
 
     input::input.evaluate_touch();
+    
     client1.send_input();
     client2.send_input();
     let gamestate = client1.receive_gamestate();
