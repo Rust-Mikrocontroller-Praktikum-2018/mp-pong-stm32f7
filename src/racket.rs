@@ -9,6 +9,23 @@ use lcd::FramebufferL8;
     const RACKET_HEIGHT : u16=30;
     const RACKET_COLOR : lcd::Color=lcd::Color::rgb(150, 150, 30);
 
+    //MOVE TO RACKET.RS
+    //Racket Starting Positions
+    let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
+    let xpos_centre_p2 = 479 - 5 - RACKET_WIDTH;
+    let ypos_centre = 135;
+    //draw racket(s) in starting position
+    for racket in rackets.iter_mut() {
+        racket.draw_rectangle(
+            framebuffer,
+            racket.get_xpos_centre() - RACKET_WIDTH,
+            racket.get_xpos_centre() + RACKET_WIDTH,
+            racket.get_ypos_centre() - RACKET_HEIGHT,
+            racket.get_ypos_centre() + RACKET_HEIGHT,
+            RACKET_COLOR,
+        );
+    }
+
 //Racket Positions
 pub struct Racket {
     xpos_centre: u16,
