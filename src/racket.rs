@@ -106,6 +106,7 @@ impl Racket {
     }
 }
 
+
 pub fn update_racket_pos(&self, &mut buffer, ){
     for racket in rackets.iter_mut() {
         //check if position changed

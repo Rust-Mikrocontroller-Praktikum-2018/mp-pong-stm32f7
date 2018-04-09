@@ -21,38 +21,45 @@ impl Input {
     }
 
 
-    pub fn evaluate_input(i2c_3: &mut i2c::I2C) {
+    pub fn evaluate_touch(i2c_3: &mut i2c::I2C,racket_1_ypos_centre:u16, racket_2_ypos_centre:u16) {
 
+        //reset
+        top_left=false;
+        bottom_left=false;
+        top_right=false;
+        bottom_right=false;       
+        
         // poll for new touch data
         for touch in &touch::touches(i2c_3).unwrap() {
-            //Player_1
-            if touch.x <= 199 {
-                //if racket not completly inside the field position at edge
-                if touch.y <= 0 + RACKET_HEIGHT {
-                    rackets[0].set_ypos_centre(0 + RACKET_HEIGHT);
-                } else if touch.y >= 271 - RACKET_HEIGHT {
-                    rackets[0].set_ypos_centre(271 - RACKET_HEIGHT);
+            
+        //Player_1
+        if touch.x <= 199 {
+                
+                //if touch above current racket_position
+                if touch.y < racket_1_ypos_centre:u16 {
+                    self.top_left=true;
+                
                 }
-                //if racket completly inside the field (if touch.y > 0 + RACKET_HEIGHT && touch.x < 271 - RACKET_HEIGHT)
-                else {
-                    //set new racket centre point (y)
-                    rackets[0].set_ypos_centre(touch.y);
+                //if touch below current racket position
+                 else if touch.y > racket_1_ypos_centre:u16{
+                    self.bottom_left=true;
                 }
+                
             }
             //Player_2
             if touch.x >= 280 {
-                //if racket not completly inside the field position at edge
-                if touch.y <= 0 + RACKET_HEIGHT {
-                    rackets[1].set_ypos_centre(0 + RACKET_HEIGHT);
-                } else if touch.y >= 271 - RACKET_HEIGHT {
-                    rackets[1].set_ypos_centre(271 - RACKET_HEIGHT);
+                //if touch above current racket_position
+                if touch.y < racket_2_ypos_centre:u16 {
+                    self.top_right=true;
+                
                 }
-                //if racket completly inside the field (if touch.y > 0 + RACKET_HEIGHT && touch.x < 271 - RACKET_HEIGHT)
-                else {
-                    //set new racket centre point (y)
-                    rackets[1].set_ypos_centre(touch.y);
+                //if touch below current racket position
+                 else if touch.y > racket_2_ypos_centre:u16 {
+                    self.bottom_right=true;
                 }
             }
+
+            
         }
     }
 }

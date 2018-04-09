@@ -256,9 +256,9 @@ fn game_loop(
         server.send_gamestate(server_gamestate);
     }
     network::handle_local(client1, client2, server);
-
-    input::input.evaluate_touch();
-    
+    //update touch input data
+    input::input.evaluate_touch(racket[0].get_ypos_centre(),racket[1].get_ypos_centre());
+    //send touch input data
     client1.send_input();
     client2.send_input();
     let gamestate = client1.receive_gamestate();
