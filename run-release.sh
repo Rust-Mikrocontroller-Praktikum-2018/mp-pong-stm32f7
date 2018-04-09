@@ -6,6 +6,9 @@ while true; do
     tput sgr0
     echo -n "Hit enter to build. Enter 'd' to be able to set breakpoints: "
     read INPUT
+	if [[ $INPUT == q ]]; then
+		exit;
+	fi
     tput setaf 178
     tput bold
     echo "🚧 Building..."
