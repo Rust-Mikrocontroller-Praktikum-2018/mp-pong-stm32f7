@@ -30,10 +30,7 @@ const PRINT_START_MESSAGE: bool = false;
 //Background Colour
     const BGCOLOR :lcd::Color= lcd::Color::rgb(0, 0, 0);
     
-    //general Racket Properties
-    const RACKET_WIDTH :u16= 10;
-    const RACKET_HEIGHT : u16=30;
-    const RACKET_COLOR : lcd::Color=lcd::Color::rgb(100, 150, 30);
+  
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
