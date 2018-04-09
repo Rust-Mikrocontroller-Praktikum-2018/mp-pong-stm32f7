@@ -3,6 +3,7 @@
 #![feature(compiler_builtins_lib)]
 #![feature(alloc)]
 #![cfg_attr(feature = "cargo-clippy", warn(clippy))]
+#![feature(const_fn)]
 
 extern crate compiler_builtins;
 extern crate r0;
@@ -18,11 +19,21 @@ use lcd::Framebuffer;
 use lcd::FramebufferL8;
 mod fps;
 use core::ptr;
+use core::cmp::max;
+use core::cmp::min;
 mod graphics;
+mod racket;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
-const PRINT_START_MESSAGE: bool = true;
+const PRINT_START_MESSAGE: bool = false;
+//Background Colour
+    const BGCOLOR :lcd::Color= lcd::Color::rgb(0, 0, 0);
+    
+    //general Racket Properties
+    const RACKET_WIDTH :u16= 10;
+    const RACKET_HEIGHT : u16=30;
+    const RACKET_COLOR : lcd::Color=lcd::Color::rgb(100, 150, 30);
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -59,7 +70,9 @@ pub unsafe extern "C" fn reset() -> ! {
 
 fn main(hw: board::Hardware) -> ! {
     if PRINT_START_MESSAGE {
-        hprintln!("\n[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
+        hprintln!(
+            "\n[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m"
+        );
     }
 
     let board::Hardware {
@@ -185,6 +198,30 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     let mut running_x = 40;
     let mut running_y = 0;
 
+    //Racket Starting Positions
+    let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
+    let xpos_centre_p2 = 479 - 5 - RACKET_WIDTH;
+    let ypos_centre = 135;
+
+    //Create Player 1 Racket
+    let racket_1 = racket::Racket::new(xpos_centre_p1, ypos_centre, ypos_centre);
+
+    //Create Player 1 Racket
+    let racket_2 = racket::Racket::new(xpos_centre_p2, ypos_centre, ypos_centre);
+
+    let mut rackets: [racket::Racket; 2] = [racket_1, racket_2];
+    //draw racket(s) in starting position
+    for racket in rackets.iter_mut() {
+        racket.draw_rectangle(
+            framebuffer,
+            racket.get_xpos_centre() - RACKET_WIDTH,
+            racket.get_xpos_centre() + RACKET_WIDTH,
+            racket.get_ypos_centre() - RACKET_HEIGHT,
+            racket.get_ypos_centre() + RACKET_HEIGHT,
+            RACKET_COLOR,
+        );
+    }
+
     loop {
         let mut need_draw = false;
         unsafe {
@@ -196,7 +233,14 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
                 framebuffer.swap_buffers();
             }
 
-            game_loop(&mut running_x, &mut running_y, framebuffer, &mut current_color, i2c_3, &fps);
+            game_loop(
+                &mut running_x,
+                &mut running_y,
+                framebuffer,
+                &mut current_color,
+                i2c_3,
+                &fps,  &mut rackets
+            );
 
             // end of frame
             fps.count_frame();
@@ -207,37 +251,101 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     }
 }
 
-fn game_loop(running_x: &mut usize, running_y: &mut usize, framebuffer: &mut FramebufferL8, current_color: &mut u8, i2c_3: &mut i2c::I2C, fps: &fps::FpsCounter) {
+fn game_loop(
+    running_x: &mut usize,
+    running_y: &mut usize,
+    framebuffer: &mut FramebufferL8,
+    current_color: &mut u8,
+    i2c_3: &mut i2c::I2C,
+    fps: &fps::FpsCounter,rackets:  &mut [racket::Racket; 2]
+) {
     logic(running_x, running_y);
-
-
-    for i in 0..10 {
-        framebuffer.clear();
-        graphics::quad(32, 32, 200, current_color, framebuffer);
-    }
-
-    draw(framebuffer, &running_x, &running_y, &current_color);
-    graphics::draw_fps(framebuffer, fps);
-
+    // poll for new touch data
     for touch in &touch::touches(i2c_3).unwrap() {
-        framebuffer.set_pixel_direct(touch.x as usize, touch.y as usize, *current_color);
-
-        if in_rect(touch.x as usize, touch.y as usize, 30, 30, 50, 50) {
-            *current_color = 255;
-        } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80, 50, 50) {
-            *current_color = 128;
-        } else if in_rect(touch.x as usize, touch.y as usize, 30, 30 + 80 + 80, 50, 50) {
-            *current_color = 0;
+        //Player_1
+        if touch.x <= 199 {
+            //if racket not completly inside the field position at edge
+            if touch.y <= 0 + RACKET_HEIGHT {
+                rackets[0].set_ypos_centre(0 + RACKET_HEIGHT);
+            } else if touch.y >= 271 - RACKET_HEIGHT {
+                rackets[0].set_ypos_centre(271 - RACKET_HEIGHT);
+            }
+            //if racket completly inside the field (if touch.y > 0 + RACKET_HEIGHT && touch.x < 271 - RACKET_HEIGHT)
+            else {
+                //set new racket centre point (y)
+                rackets[0].set_ypos_centre(touch.y);
+            }
+        }
+        //Player_2
+        if touch.x >= 280 {
+            //if racket not completly inside the field position at edge
+            if touch.y <= 0 + RACKET_HEIGHT {
+                rackets[1].set_ypos_centre(0 + RACKET_HEIGHT);
+            } else if touch.y >= 271 - RACKET_HEIGHT {
+                rackets[1].set_ypos_centre(271 - RACKET_HEIGHT);
+            }
+            //if racket completly inside the field (if touch.y > 0 + RACKET_HEIGHT && touch.x < 271 - RACKET_HEIGHT)
+            else {
+                //set new racket centre point (y)
+                rackets[1].set_ypos_centre(touch.y);
+            }
         }
     }
+
+    for racket in rackets.iter_mut() {
+        //check if position changed
+        if racket.get_ypos_centre() != racket.get_ypos_centre_old() {
+            //if racket moved down
+            if racket.get_ypos_centre() > racket.get_ypos_centre_old() {
+                racket.move_racket(
+                    framebuffer,
+                    racket.get_xpos_centre() - RACKET_WIDTH,
+                    racket.get_xpos_centre() + RACKET_WIDTH,
+                    racket.get_ypos_centre_old() - RACKET_HEIGHT,
+                    min(
+                        racket.get_ypos_centre() - RACKET_HEIGHT - 1,
+                        racket.get_ypos_centre_old() + RACKET_HEIGHT,
+                    ),
+                    max(
+                        racket.get_ypos_centre_old() + RACKET_HEIGHT,
+                        racket.get_ypos_centre() - RACKET_HEIGHT,
+                    ),
+                    racket.get_ypos_centre() + RACKET_HEIGHT,
+                    BGCOLOR,
+                    RACKET_COLOR,
+                );
+            }
+            //if racket moved up
+            if racket.get_ypos_centre() < racket.get_ypos_centre_old() {
+                //TODO CREATE FN MOVE RACKET
+                racket.move_racket(
+                    framebuffer,
+                    racket.get_xpos_centre() - RACKET_WIDTH,
+                    racket.get_xpos_centre() + RACKET_WIDTH,
+                    max(
+                        racket.get_ypos_centre() + RACKET_HEIGHT + 1,
+                        racket.get_ypos_centre_old() - RACKET_HEIGHT,
+                    ),
+                    racket.get_ypos_centre_old() + RACKET_HEIGHT,
+                    racket.get_ypos_centre() - RACKET_HEIGHT,
+                    min(
+                        racket.get_ypos_centre_old() - RACKET_HEIGHT,
+                        racket.get_ypos_centre() + RACKET_HEIGHT,
+                    ),
+                    BGCOLOR,
+                    RACKET_COLOR,
+                );
+            }
+            //remember old racket points (y)
+            let mut ypos_centre_old = racket.get_ypos_centre();
+            racket.set_ypos_centre_old(ypos_centre_old);
+        }
+    }
+
+    graphics::draw_fps(framebuffer, fps);
 }
 
-fn draw(
-    layer1: &mut lcd::FramebufferL8,
-    running_x: &usize,
-    running_y: &usize,
-    current_color: &u8,
-) {
+fn draw(layer1: &mut lcd::FramebufferL8, running_x: &usize, running_y: &usize, current_color: &u8) {
     layer1.set_pixel_direct(*running_x, *running_y, *current_color);
 }
 
@@ -294,4 +402,3 @@ fn in_rect(
 ) -> bool {
     pos_x > rect_x && pos_y > rect_y && pos_x < rect_x + rect_width && pos_y < rect_y + rect_height
 }
-

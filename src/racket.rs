@@ -1,4 +1,8 @@
-use stm32f7::lcd;
+//use stm32f7::lcd;
+use lcd;
+use lcd::Framebuffer;
+use lcd::FramebufferL8;
+
 //Racket Positions
 pub struct Racket {
     xpos_centre: u16,
@@ -37,7 +41,7 @@ impl Racket {
     //pub fn draw_racket()
     pub fn draw_rectangle(
         & self,
-        layer: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+        layer: &mut lcd::FramebufferL8,
         x_left: u16,
         x_right: u16,
         y_top: u16,
@@ -46,13 +50,13 @@ impl Racket {
     ) {
         for y in y_top..=y_bottom {
             for x in x_left..=x_right {
-                layer.print_point_color_at(x as usize, y as usize, colour);
+                layer.set_pixel(x as usize, y as usize, colour);
             }
         }
     }
     pub fn move_racket(
         & self,
-        layer: &mut lcd::Layer<lcd::FramebufferArgb8888>,
+        layer: &mut lcd::FramebufferL8,
         x_left: u16,
         x_right: u16,
         y_top_erase: u16,
