@@ -12,6 +12,7 @@ extern crate r0;
 extern crate stm32f7_discovery as stm32f7;
 #[macro_use]
 extern crate alloc;
+extern crate smoltcp;
 
 mod fps;
 mod geometry;
@@ -26,14 +27,18 @@ use embedded::interfaces::gpio::Gpio;
 use input::Input;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
+use network::Network;
 use network::{Client, GamestatePacket, InputPacket, LocalClient, LocalServer, Server};
-use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
+use smoltcp::wire::{EthernetAddress, Ipv4Address};
+use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
-//Background Colour
 const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
+
+const ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef]);
+const IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 198]);
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -94,68 +99,82 @@ fn main(hw: board::Hardware) -> ! {
         gpio_k,
         i2c_3,
         nvic,
+        ethernet_mac,
+        ethernet_dma,
+        syscfg,
         ..
     } = hw;
+
+    let mut gpio = Gpio::new(
+        gpio_a,
+        gpio_b,
+        gpio_c,
+        gpio_d,
+        gpio_e,
+        gpio_f,
+        gpio_g,
+        gpio_h,
+        gpio_i,
+        gpio_j,
+        gpio_k,
+    );
+
+    system_clock::init(rcc, pwr, flash);
+
+    // enable all gpio ports
+    rcc.ahb1enr.update(|r| {
+        r.set_gpioaen(true);
+        r.set_gpioben(true);
+        r.set_gpiocen(true);
+        r.set_gpioden(true);
+        r.set_gpioeen(true);
+        r.set_gpiofen(true);
+        r.set_gpiogen(true);
+        r.set_gpiohen(true);
+        r.set_gpioien(true);
+        r.set_gpiojen(true);
+        r.set_gpioken(true);
+    });
+
+    // init sdram (for display)
+    sdram::init(rcc, fmc, &mut gpio);
+
+    // init touch screen
+    i2c::init_pins_and_clocks(rcc, &mut gpio);
+    let mut i2c_3 = i2c::init(i2c_3);
+    touch::check_family_id(&mut i2c_3).unwrap();
+
+    let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
+    lcd.set_background_color(lcd::Color {
+        red: 0,
+        green: 0,
+        blue: 0,
+        alpha: 255,
+    });
+    let mut framebuffer = FramebufferL8::new();
+    framebuffer.init();
+    lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
+    lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
+
+    if !USE_DOUBLE_BUFFER {
+        lcd.swap_buffers();
+    }
+    lcd.swap_buffers();
+
+    let mut network = network::init(
+        rcc,
+        syscfg,
+        ethernet_mac,
+        ethernet_dma,
+        &mut gpio,
+        ETH_ADDR,
+        IP_ADDR,
+    ).unwrap(); // TODO: error handling
+
     interrupts::scope(
         nvic,
         |_| {},
         move |interrupt_table| {
-            let mut gpio = Gpio::new(
-                gpio_a,
-                gpio_b,
-                gpio_c,
-                gpio_d,
-                gpio_e,
-                gpio_f,
-                gpio_g,
-                gpio_h,
-                gpio_i,
-                gpio_j,
-                gpio_k,
-            );
-
-            system_clock::init(rcc, pwr, flash);
-
-            // enable all gpio ports
-            rcc.ahb1enr.update(|r| {
-                r.set_gpioaen(true);
-                r.set_gpioben(true);
-                r.set_gpiocen(true);
-                r.set_gpioden(true);
-                r.set_gpioeen(true);
-                r.set_gpiofen(true);
-                r.set_gpiogen(true);
-                r.set_gpiohen(true);
-                r.set_gpioien(true);
-                r.set_gpiojen(true);
-                r.set_gpioken(true);
-            });
-
-            // init sdram (for display)
-            sdram::init(rcc, fmc, &mut gpio);
-
-            // init touch screen
-            i2c::init_pins_and_clocks(rcc, &mut gpio);
-            let mut i2c_3 = i2c::init(i2c_3);
-            touch::check_family_id(&mut i2c_3).unwrap();
-
-            let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
-            lcd.set_background_color(lcd::Color {
-                red: 0,
-                green: 0,
-                blue: 0,
-                alpha: 255,
-            });
-            let mut framebuffer = FramebufferL8::new();
-            framebuffer.init();
-            lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
-            lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
-
-            if !USE_DOUBLE_BUFFER {
-                lcd.swap_buffers();
-            }
-            lcd.swap_buffers();
-
             let should_draw_now = false;
             let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
 
@@ -178,12 +197,22 @@ fn main(hw: board::Hardware) -> ! {
                 )
                 .expect("LcdTft interrupt already used");
 
-            run(&mut framebuffer, &mut i2c_3, should_draw_now_ptr)
+            run(
+                &mut framebuffer,
+                &mut i2c_3,
+                should_draw_now_ptr,
+                &mut network,
+            )
         },
     )
 }
 
-fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_ptr: usize) -> ! {
+fn run(
+    framebuffer: &mut FramebufferL8,
+    i2c_3: &mut i2c::I2C,
+    should_draw_now_ptr: usize,
+    network: &mut Network,
+) -> ! {
     hprintln!("Start run()");
     //// INIT COMPLETE ////
     let mut fps = fps::init();
@@ -209,7 +238,8 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
         let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
         unsafe {
             // Frame synchronisation
-            need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
+            //need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
+            need_draw = true;
         }
         if need_draw {
             if USE_DOUBLE_BUFFER {
@@ -227,6 +257,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
                 &mut server_gamestate,
                 is_server,
                 is_local,
+                network,
             );
 
             // end of frame
@@ -249,7 +280,9 @@ fn game_loop(
     server_gamestate: &mut GamestatePacket,
     is_server: bool,
     is_local: bool,
+    network: &mut Network,
 ) {
+    network.handle_ethernet_packets();
     if is_server {
         let inputs = server.receive_inputs();
         calcute_physics(server_gamestate, inputs);

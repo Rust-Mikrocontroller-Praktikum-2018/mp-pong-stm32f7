@@ -1,52 +1,136 @@
-#[derive(Debug, Copy, Clone)]
-pub struct GamestatePacket {
-    pub rackets: [RacketPacket; 2],
-    pub ball: BallPacket,
-    pub score: [u8; 2],
+use smoltcp;
+use smoltcp::iface::EthernetInterface;
+use smoltcp::socket::{Socket, SocketSet, TcpSocket, TcpSocketBuffer};
+use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
+use smoltcp::time::Instant;
+use smoltcp::wire::{EthernetAddress, IpAddress, IpEndpoint, Ipv4Address};
+
+mod packets;
+pub use self::packets::BallPacket;
+pub use self::packets::GamestatePacket;
+pub use self::packets::InputPacket;
+pub use self::packets::RacketPacket;
+
+use alloc::Vec;
+use board;
+use embedded;
+use ethernet;
+use system_clock;
+
+pub struct Network<'a> {
+    ethernet_interface: EthernetInterface<'a, 'a, ethernet::EthernetDevice>,
+    sockets: SocketSet<'a, 'a, 'a>,
 }
-#[derive(Debug, Copy, Clone)]
-pub struct RacketPacket {
-    pub x: i16, // center_x
-    pub y: i16, // center_y
-}
-#[derive(Debug, Copy, Clone)]
-pub struct BallPacket {
-    pub x: i16, // center_x
-    pub y: i16, // center_y
-    pub x_vel: i16,
-    pub y_vel: i16,
-}
-#[derive(Debug, Copy, Clone)]
-pub struct InputPacket {
-    pub up: bool,
-    pub down: bool,
-}
-  
-impl GamestatePacket {
-    pub fn new() -> GamestatePacket {
-        GamestatePacket {
-            rackets: [
-                RacketPacket { x: 0, y: 100 },
-                RacketPacket { x: 400, y: 100 },
-            ],
-            ball: BallPacket {
-                x: 200,
-                y: 100,
-                x_vel: 1,
-                y_vel: 1,
+
+impl<'a> Network<'a> {
+    pub fn handle_ethernet_packets(&mut self) {
+        // handle new ethernet packets
+        match self.ethernet_interface.poll(
+            &mut self.sockets,
+            Instant::from_millis(system_clock::ticks() as i64),
+        ) {
+            Err(::smoltcp::Error::Exhausted) => return,
+            Err(::smoltcp::Error::Unrecognized) => {}
+            Err(e) => hprintln!("Network error: {:?}", e),
+            Ok(socket_changed) => if socket_changed {
+                for mut socket in self.sockets.iter_mut() {
+                    poll_socket(&mut socket).expect("socket poll failed");
+                }
             },
-            score: [0, 0],
         }
     }
 }
 
-impl InputPacket {
-    pub fn new() -> InputPacket {
-        InputPacket {
-            up: false,
-            down: false,
-        }
+pub fn init(
+    rcc: &mut board::rcc::Rcc,
+    syscfg: &mut board::syscfg::Syscfg,
+    ethernet_mac: &'static mut board::ethernet_mac::EthernetMac,
+    ethernet_dma: &'static mut board::ethernet_dma::EthernetDma,
+    gpio: &mut embedded::interfaces::gpio::Gpio,
+    ethernet_addr: EthernetAddress,
+    ip_addr: Ipv4Address,
+) -> Option<Network<'static>> {
+    // Ethernet init
+    let ethernet_interface = ethernet::EthernetDevice::new(
+        Default::default(),
+        Default::default(),
+        rcc,
+        syscfg,
+        gpio,
+        ethernet_mac,
+        ethernet_dma,
+        ethernet_addr,
+    ).map(|device| device.into_interface(ip_addr));
+    if let Err(e) = ethernet_interface {
+        hprintln!("ethernet init failed: {:?}", e);
+        return None;
     }
+
+    let mut sockets = SocketSet::new(Vec::new());
+    let endpoint = IpEndpoint::new(IpAddress::Ipv4(ip_addr), 15);
+
+    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 256]);
+    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 128]);
+    let mut example_udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
+    example_udp_socket.bind(endpoint).unwrap();
+    sockets.add(example_udp_socket);
+
+    let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; ethernet::MTU]);
+    let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; ethernet::MTU]);
+    let mut example_tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
+    example_tcp_socket.listen(endpoint).unwrap();
+    sockets.add(example_tcp_socket);
+
+    Some(Network {
+        ethernet_interface: ethernet_interface.unwrap(),
+        sockets: sockets,
+    })
+}
+
+fn poll_socket(socket: &mut Socket) -> Result<(), smoltcp::Error> {
+    match socket {
+        &mut Socket::Udp(ref mut socket) => match socket.endpoint().port {
+            15 => loop {
+                let reply;
+                match socket.recv() {
+                    Ok((data, remote_endpoint)) => {
+                        let mut data = Vec::from(data);
+                        let len = data.len() - 1;
+                        data[..len].reverse();
+                        reply = (data, remote_endpoint);
+                    }
+                    Err(smoltcp::Error::Exhausted) => break,
+                    Err(err) => return Err(err),
+                }
+                socket.send_slice(&reply.0, reply.1)?;
+            },
+            _ => {}
+        },
+        &mut Socket::Tcp(ref mut socket) => match socket.local_endpoint().port {
+            15 => {
+                if !socket.may_recv() {
+                    return Ok(());
+                }
+                let reply = socket.recv(|data| {
+                    if data.len() > 0 {
+                        let mut reply = Vec::from("tcp: ");
+                        let start_index = reply.len();
+                        reply.extend_from_slice(data);
+                        reply[start_index..(start_index + data.len() - 1)].reverse();
+                        (data.len(), Some(reply))
+                    } else {
+                        (data.len(), None)
+                    }
+                })?;
+                if let Some(reply) = reply {
+                    assert_eq!(socket.send_slice(&reply)?, reply.len());
+                }
+            }
+            _ => {}
+        },
+        _ => {}
+    }
+    Ok(())
 }
 
 pub trait Client {
