@@ -4,7 +4,7 @@ use lcd::FramebufferL8;
 
 pub fn draw_rectangle(
         & self,
-        layer: &mut lcd::FramebufferL8,
+        buffer: &mut lcd::FramebufferL8,
         x_left: u16,
         x_right: u16,
         y_top: u16,
@@ -13,8 +13,8 @@ pub fn draw_rectangle(
     ) {
         for y in y_top..=y_bottom {
             for x in x_left..=x_right {
-                layer.set_pixel(x as usize, y as usize, colour);
+                buffer.set_pixel(x as usize, y as usize, colour);
             }
         }
     }
-pub fn draw_circle();
+pub fn draw_circle(&self, buffer:: &mut lcd::FramebufferL8);

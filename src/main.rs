@@ -192,11 +192,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     let mut fps = fps::init();
     fps.output_enabled = ENABLE_FPS_OUTPUT;
 
-    //MOVE TO RACKET.RS
-    //Racket Starting Positions
-    let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
-    let xpos_centre_p2 = 479 - 5 - RACKET_WIDTH;
-    let ypos_centre = 135;
+    
 
     //Create Player 1 Racket
     let racket_1 = racket::Racket::new(xpos_centre_p1, ypos_centre, ypos_centre);
@@ -205,17 +201,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     let racket_2 = racket::Racket::new(xpos_centre_p2, ypos_centre, ypos_centre);
 
     let mut rackets: [racket::Racket; 2] = [racket_1, racket_2];
-    //draw racket(s) in starting position
-    for racket in rackets.iter_mut() {
-        racket.draw_rectangle(
-            framebuffer,
-            racket.get_xpos_centre() - RACKET_WIDTH,
-            racket.get_xpos_centre() + RACKET_WIDTH,
-            racket.get_ypos_centre() - RACKET_HEIGHT,
-            racket.get_ypos_centre() + RACKET_HEIGHT,
-            RACKET_COLOR,
-        );
-    }
+     for racket in rackets.iter_mut() {racket.draw_racket_start_pos();}
 
     // setup local "network"
     let client1 = network::LocalClient::new();
