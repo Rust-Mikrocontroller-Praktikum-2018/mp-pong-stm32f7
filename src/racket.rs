@@ -89,7 +89,7 @@ impl Racket {
     }
 }
 
-pub fn update_racket_pos(){
+pub fn update_racket_pos(&self, &mut buffer, ){
     for racket in rackets.iter_mut() {
         //check if position changed
         if racket.get_ypos_centre() != racket.get_ypos_centre_old() {

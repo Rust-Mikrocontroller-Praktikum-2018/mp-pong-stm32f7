@@ -274,8 +274,6 @@ fn game_loop(
     server: &mut Server,
     server_gamestate: &mut GamestatePacket,
 ) {
-    logic(running_x, running_y);
-
     if is_server {
         let inputs = server.receive_inputs();
         calcute_physics(server_gamestate, inputs);
@@ -290,7 +288,6 @@ fn game_loop(
 
     //move rackets and ball
     update_graphics(gamestate);
-
     graphics::draw_fps(framebuffer, fps);
 }
 
