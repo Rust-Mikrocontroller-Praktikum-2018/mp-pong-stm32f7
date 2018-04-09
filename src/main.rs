@@ -197,7 +197,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
 
     let mut running_x = 40;
     let mut running_y = 0;
-
+    //MOVE TO RACKET.RS
     //Racket Starting Positions
     let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
     let xpos_centre_p2 = 479 - 5 - RACKET_WIDTH;
@@ -260,87 +260,19 @@ fn game_loop(
     fps: &fps::FpsCounter,rackets:  &mut [racket::Racket; 2]
 ) {
     logic(running_x, running_y);
-    // poll for new touch data
-    for touch in &touch::touches(i2c_3).unwrap() {
-        //Player_1
-        if touch.x <= 199 {
-            //if racket not completly inside the field position at edge
-            if touch.y <= 0 + RACKET_HEIGHT {
-                rackets[0].set_ypos_centre(0 + RACKET_HEIGHT);
-            } else if touch.y >= 271 - RACKET_HEIGHT {
-                rackets[0].set_ypos_centre(271 - RACKET_HEIGHT);
-            }
-            //if racket completly inside the field (if touch.y > 0 + RACKET_HEIGHT && touch.x < 271 - RACKET_HEIGHT)
-            else {
-                //set new racket centre point (y)
-                rackets[0].set_ypos_centre(touch.y);
-            }
-        }
-        //Player_2
-        if touch.x >= 280 {
-            //if racket not completly inside the field position at edge
-            if touch.y <= 0 + RACKET_HEIGHT {
-                rackets[1].set_ypos_centre(0 + RACKET_HEIGHT);
-            } else if touch.y >= 271 - RACKET_HEIGHT {
-                rackets[1].set_ypos_centre(271 - RACKET_HEIGHT);
-            }
-            //if racket completly inside the field (if touch.y > 0 + RACKET_HEIGHT && touch.x < 271 - RACKET_HEIGHT)
-            else {
-                //set new racket centre point (y)
-                rackets[1].set_ypos_centre(touch.y);
-            }
-        }
+    
+    if is_server{
+        network::server.receive_input();
+        calcute_physics();
+        network::server.send_gamestate();
     }
 
-    for racket in rackets.iter_mut() {
-        //check if position changed
-        if racket.get_ypos_centre() != racket.get_ypos_centre_old() {
-            //if racket moved down
-            if racket.get_ypos_centre() > racket.get_ypos_centre_old() {
-                racket.move_racket(
-                    framebuffer,
-                    racket.get_xpos_centre() - RACKET_WIDTH,
-                    racket.get_xpos_centre() + RACKET_WIDTH,
-                    racket.get_ypos_centre_old() - RACKET_HEIGHT,
-                    min(
-                        racket.get_ypos_centre() - RACKET_HEIGHT - 1,
-                        racket.get_ypos_centre_old() + RACKET_HEIGHT,
-                    ),
-                    max(
-                        racket.get_ypos_centre_old() + RACKET_HEIGHT,
-                        racket.get_ypos_centre() - RACKET_HEIGHT,
-                    ),
-                    racket.get_ypos_centre() + RACKET_HEIGHT,
-                    BGCOLOR,
-                    RACKET_COLOR,
-                );
-            }
-            //if racket moved up
-            if racket.get_ypos_centre() < racket.get_ypos_centre_old() {
-                //TODO CREATE FN MOVE RACKET
-                racket.move_racket(
-                    framebuffer,
-                    racket.get_xpos_centre() - RACKET_WIDTH,
-                    racket.get_xpos_centre() + RACKET_WIDTH,
-                    max(
-                        racket.get_ypos_centre() + RACKET_HEIGHT + 1,
-                        racket.get_ypos_centre_old() - RACKET_HEIGHT,
-                    ),
-                    racket.get_ypos_centre_old() + RACKET_HEIGHT,
-                    racket.get_ypos_centre() - RACKET_HEIGHT,
-                    min(
-                        racket.get_ypos_centre_old() - RACKET_HEIGHT,
-                        racket.get_ypos_centre() + RACKET_HEIGHT,
-                    ),
-                    BGCOLOR,
-                    RACKET_COLOR,
-                );
-            }
-            //remember old racket points (y)
-            let mut ypos_centre_old = racket.get_ypos_centre();
-            racket.set_ypos_centre_old(ypos_centre_old);
-        }
-    }
+
+    input::input.evaluate_touch();
+    network::client.send_input();
+    network::server.receive__gamestate();
+    //move rackets and ball
+    update_graphics();
 
     graphics::draw_fps(framebuffer, fps);
 }
