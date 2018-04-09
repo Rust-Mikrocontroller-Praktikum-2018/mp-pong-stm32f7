@@ -1,5 +1,3 @@
-#![feature(const_fn)]
-
 use geometry;
 use lcd;
 

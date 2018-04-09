@@ -21,7 +21,7 @@ pub struct InputPacket {
     pub up: bool,
     pub down: bool,
 }
-
+  
 impl GamestatePacket {
     pub fn new() -> GamestatePacket {
         GamestatePacket {

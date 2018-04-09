@@ -15,4 +15,7 @@ pub fn draw_rectangle(
         }
     }
 }
-pub fn draw_circle(buffer: &mut lcd::FramebufferL8) {}
+pub fn draw_circle(buffer: &mut lcd::FramebufferL8) {
+    // TODO: implement
+    let _ = buffer;
+}

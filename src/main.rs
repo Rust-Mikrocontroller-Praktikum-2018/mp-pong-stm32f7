@@ -4,6 +4,7 @@
 #![feature(alloc)]
 #![cfg_attr(feature = "cargo-clippy", warn(clippy))]
 #![feature(const_fn)]
+#![allow(dead_code)] // TODO: remove if all features are used to find dead code4
 
 extern crate compiler_builtins;
 extern crate r0;
@@ -20,8 +21,6 @@ mod lcd; // use custom LCD implementation
 mod network;
 mod racket;
 
-use core::cmp::max;
-use core::cmp::min;
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
 use input::Input;
@@ -94,10 +93,6 @@ fn main(hw: board::Hardware) -> ! {
         gpio_j,
         gpio_k,
         i2c_3,
-        sai_2,
-        syscfg,
-        ethernet_mac,
-        ethernet_dma,
         nvic,
         ..
     } = hw;
@@ -164,7 +159,7 @@ fn main(hw: board::Hardware) -> ! {
             let should_draw_now = false;
             let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
 
-            let interrupt_handler = interrupt_table
+            let _interrupt_handler = interrupt_table
                 .register(
                     interrupts::interrupt_request::InterruptRequest::LcdTft,
                     interrupts::Priority::P1,
@@ -211,7 +206,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     let mut server_gamestate = network::GamestatePacket::new();
 
     loop {
-        let mut need_draw = false; // This memory space is accessed directly to achive synchronisation. Very unsafe!
+        let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
         unsafe {
             // Frame synchronisation
             need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
@@ -301,6 +296,15 @@ fn send_input_to_server(
     }
 }
 
-fn update_graphics(gamestate: &GamestatePacket) {}
+fn update_graphics(gamestate: &GamestatePacket) {
+    // TODO: implement
+    // TODO: move into module
+    let _ = gamestate;
+}
 
-fn calcute_physics(gamestate: &GamestatePacket, inputs: [InputPacket; 2]) {}
+fn calcute_physics(gamestate: &GamestatePacket, inputs: [InputPacket; 2]) {
+    // TODO: implement
+    // TODO: move into module
+    let _ = gamestate;
+    let _ = inputs;
+}

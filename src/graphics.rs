@@ -2,11 +2,28 @@ use fps;
 use lcd;
 use lcd::Framebuffer;
 
-pub fn draw_rectangle(x: u16, y: u16, width: u16, height: u16) {}
+pub fn draw_rectangle(x: u16, y: u16, width: u16, height: u16) {
+    // TODO: implement
+    let _ = x;
+    let _ = y;
+    let _ = width;
+    let _ = height;
+}
 
-pub fn draw_circle(x: u16, y: u16, radius: u16) {}
+pub fn draw_circle(x: u16, y: u16, radius: u16) {
+    // TODO: implement
+    let _ = x;
+    let _ = y;
+    let _ = radius;
+}
 
-pub fn draw_line(start_x: u16, start_y: u16, end_x: u16, end_y: u16) {}
+pub fn draw_line(start_x: u16, start_y: u16, end_x: u16, end_y: u16) {
+    // TODO: implement
+    let _ = start_x;
+    let _ = start_y;
+    let _ = end_x;
+    let _ = end_y;
+}
 
 pub fn draw_fps(layer1: &mut lcd::FramebufferL8, fps: &fps::FpsCounter) {
     let mut number = fps.last_fps;
