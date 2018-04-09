@@ -263,6 +263,7 @@ fn game_loop(
         calcute_physics(server_gamestate, inputs);
         server.send_gamestate(server_gamestate);
     }
+    
     if is_local {
         network::handle_local(client1, client2, server);
     }
