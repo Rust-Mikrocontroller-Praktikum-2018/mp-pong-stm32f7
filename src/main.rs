@@ -257,7 +257,7 @@ fn game_loop(
     fps: &fps::FpsCounter,rackets:  &mut [racket::Racket; 2]
 ) {
     logic(running_x, running_y);
-    
+    for racket in rackets.iter_mut() {
     if is_server{
         network::server.receive_input();
         calcute_physics();
@@ -270,7 +270,7 @@ fn game_loop(
     network::server.receive__gamestate();
     //move rackets and ball
     update_graphics();
-
+    }
     graphics::draw_fps(framebuffer, fps);
 }
 
