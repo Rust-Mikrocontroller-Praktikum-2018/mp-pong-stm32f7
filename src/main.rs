@@ -12,28 +12,32 @@ extern crate stm32f7_discovery as stm32f7;
 #[macro_use]
 extern crate alloc;
 
-use embedded::interfaces::gpio::Gpio;
-use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
-mod lcd; // use custom LCD implementation
-use lcd::Framebuffer;
-use lcd::FramebufferL8;
 mod fps;
-use core::ptr;
+mod graphics;
+mod lcd; // use custom LCD implementation
+mod network;
+mod racket;
+
 use core::cmp::max;
 use core::cmp::min;
-mod graphics;
-mod racket;
+use core::ptr;
+use embedded::interfaces::gpio::Gpio;
+use lcd::Framebuffer;
+use lcd::FramebufferL8;
+use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
+use network::Client;
+use network::Server;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
 //Background Colour
-    const BGCOLOR :lcd::Color= lcd::Color::rgb(0, 0, 0);
-    
-    //general Racket Properties
-    const RACKET_WIDTH :u16= 10;
-    const RACKET_HEIGHT : u16=30;
-    const RACKET_COLOR : lcd::Color=lcd::Color::rgb(100, 150, 30);
+const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
+
+//general Racket Properties
+const RACKET_WIDTH: u16 = 10;
+const RACKET_HEIGHT: u16 = 30;
+const RACKET_COLOR: lcd::Color = lcd::Color::rgb(100, 150, 30);
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -222,6 +226,13 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
         );
     }
 
+
+    // setup local "network"
+    let client1 = network::LocalClient::new();
+    let client2 = network::LocalClient::new();
+    let server = network::LocalServer::new();
+    let server_gamestate = network::GamestatePacket::new();
+
     loop {
         let mut need_draw = false;
         unsafe {
@@ -239,7 +250,12 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
                 framebuffer,
                 &mut current_color,
                 i2c_3,
-                &fps,  &mut rackets
+                &fps,
+                &mut rackets,
+                &mut client1,
+                &mut client2,
+                &mut server,
+                &mut server_gamestate
             );
 
             // end of frame
@@ -257,22 +273,29 @@ fn game_loop(
     framebuffer: &mut FramebufferL8,
     current_color: &mut u8,
     i2c_3: &mut i2c::I2C,
-    fps: &fps::FpsCounter,rackets:  &mut [racket::Racket; 2]
+    fps: &fps::FpsCounter,
+    rackets: &mut [racket::Racket; 2],
+    client1: &mut Client,
+    client2: &mut Client,
+    server: &mut Server,
+    server_gamestate: &mut GamestatePacket,
 ) {
     logic(running_x, running_y);
-    
-    if is_server{
-        network::server.receive_input();
-        calcute_physics();
-        network::server.send_gamestate();
-    }
 
+    if is_server {
+        let inputs = server.receive_inputs();
+        calcute_physics(server_gamestate, inputs);
+        server.send_gamestate(server_gamestate);
+    }
+    network::handle_local(client1, client2, server);
 
     input::input.evaluate_touch();
-    network::client.send_input();
-    network::server.receive__gamestate();
+    client1.send_input();
+    client2.send_input();
+    let gamestate = client1.receive_gamestate();
+
     //move rackets and ball
-    update_graphics();
+    update_graphics(gamestate);
 
     graphics::draw_fps(framebuffer, fps);
 }
