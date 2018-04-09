@@ -7,7 +7,8 @@ pub struct Color {
 }
 
 impl Color {
-    pub fn rgb(red: u8, green: u8, blue: u8) -> Color {
+    
+    pub const fn rgb(red: u8, green: u8, blue: u8) -> Color {
         Self::rgba(red, green, blue, 255)
     }
 
@@ -15,7 +16,7 @@ impl Color {
         (u32::from(self.red) << 16) | (u32::from(self.green) << 8) | u32::from(self.blue)
     }
 
-    pub fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
+    pub const fn rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
         Color {
             red: red,
             green: green,

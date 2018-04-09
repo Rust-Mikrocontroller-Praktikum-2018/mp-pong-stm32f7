@@ -36,3 +36,5 @@ define semihosting-enable
     end
   end
 end
+
+semihosting-enable
