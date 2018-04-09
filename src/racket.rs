@@ -9,7 +9,7 @@ use lcd::FramebufferL8;
     const RACKET_HEIGHT : u16=30;
     const RACKET_COLOR : lcd::Color=lcd::Color::rgb(150, 150, 30);
 
-    //MOVE TO RACKET.RS
+    
     //Racket Starting Positions
     let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
     let xpos_centre_p2 = 479 - 5 - RACKET_WIDTH;
@@ -34,12 +34,17 @@ pub struct Racket {
 }
 impl Racket {
     //Create new Racket
-    pub fn new(xpos_centre: u16, ypos_centre: u16, ypos_centre_old: u16) -> Racket {
+    pub fn new(player_id: u16) -> Racket {
+        if player_id=0{
         Racket {
-            xpos_centre: xpos_centre,
-            ypos_centre: ypos_centre,
-            ypos_centre_old: ypos_centre_old,
-        }
+            xpos_centre: RACKET_WIDTH,
+            ypos_centre: 135,      ypos_centre_old: 135,
+        }}
+        else if player_id=1{
+        Racket {
+            xpos_centre: 479-RACKET_WIDTH,
+            ypos_centre: 135,      ypos_centre_old: 135,
+        }}
     }
     //set Centre Point Coordinates
     /*pub fn set_xpos_centre(&mut self, xpos_centre_set: u16) {
