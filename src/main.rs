@@ -257,7 +257,7 @@ fn game_loop(
     }
     network::handle_local(client1, client2, server);
     //update touch input data
-    input::input.evaluate_touch(racket[0].get_ypos_centre(),racket[1].get_ypos_centre());
+    input::input.evaluate_touch(rackets[0].get_ypos_centre(),rackets[1].get_ypos_centre());
     //send touch input data
     client1.send_input();
     client2.send_input();
