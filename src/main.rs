@@ -24,20 +24,15 @@ use core::ptr;
 use embedded::interfaces::gpio::Gpio;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
-use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
 use network::Client;
 use network::Server;
+use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
 //Background Colour
 const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
-
-//general Racket Properties
-const RACKET_WIDTH: u16 = 10;
-const RACKET_HEIGHT: u16 = 30;
-const RACKET_COLOR: lcd::Color = lcd::Color::rgb(100, 150, 30);
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -226,7 +221,6 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
         );
     }
 
-
     // setup local "network"
     let client1 = network::LocalClient::new();
     let client2 = network::LocalClient::new();
@@ -255,7 +249,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
                 &mut client1,
                 &mut client2,
                 &mut server,
-                &mut server_gamestate
+                &mut server_gamestate,
             );
 
             // end of frame

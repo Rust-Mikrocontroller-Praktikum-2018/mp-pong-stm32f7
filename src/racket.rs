@@ -1,7 +1,13 @@
-//use stm32f7::lcd;
+#![feature(const_fn)]
+
 use lcd;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
+
+  //general Racket Properties
+    const RACKET_WIDTH :u16= 10;
+    const RACKET_HEIGHT : u16=30;
+    const RACKET_COLOR : lcd::Color=lcd::Color::rgb(150, 150, 30);
 
 //Racket Positions
 pub struct Racket {
@@ -38,28 +44,17 @@ impl Racket {
     pub fn get_ypos_centre_old(& self) -> u16 {
         self.ypos_centre_old
     }
-    /*
-    pub fn draw_racket(&self,layer: &mut lcd::FramebufferL8,
-        x_left: u16,
-        x_right: u16,
-        y_top: u16,
-        y_bottom: u16,
-        colour: lcd::Color){}
-    */
-    pub fn draw_rectangle(
-        & self,
-        layer: &mut lcd::FramebufferL8,
-        x_left: u16,
-        x_right: u16,
-        y_top: u16,
-        y_bottom: u16,
-        colour: lcd::Color,
-    ) {
-        for y in y_top..=y_bottom {
-            for x in x_left..=x_right {
-                layer.set_pixel(x as usize, y as usize, colour);
-            }
-        }
+    
+    
+    pub fn draw_racket_start_pos(&self,layer: &mut lcd::FramebufferL8,id:bool){self.draw_rectangle(
+            layer,
+            xpos_centre-RACKET_WIDTH,
+            xpos_centre+RACKET_WIDTH,
+            ypos_centre-RACKET_HEIGHT,
+            ypos_centre+RACKET_HEIGHT,
+            RACKET_COLOR,
+        );
+
     }
     pub fn move_racket(
         & self,
@@ -70,8 +65,8 @@ impl Racket {
         y_bottom_erase: u16,
         y_top_draw: u16,
         y_bottom_draw: u16,
-        bgcolour: lcd::Color,
-        racket_colour: lcd::Color,
+        bgcolor: lcd::Color,
+        racket_color: lcd::Color,
     ) {
         //erase old racket
         self.draw_rectangle(
@@ -80,7 +75,7 @@ impl Racket {
             x_right,
             y_top_erase,
             y_bottom_erase,
-            bgcolour,
+            bgcolor,
         );
         //draw new racket
         self.draw_rectangle(
@@ -89,13 +84,13 @@ impl Racket {
             x_right,
             y_top_draw,
             y_bottom_draw,
-            racket_colour,
+            racket_color,
         );
     }
 }
 
-
-for racket in rackets.iter_mut() {
+pub fn update_racket_pos(){
+    for racket in rackets.iter_mut() {
         //check if position changed
         if racket.get_ypos_centre() != racket.get_ypos_centre_old() {
             //if racket moved down
@@ -143,4 +138,4 @@ for racket in rackets.iter_mut() {
             let mut ypos_centre_old = racket.get_ypos_centre();
             racket.set_ypos_centre_old(ypos_centre_old);
         }
-    }
+    }}

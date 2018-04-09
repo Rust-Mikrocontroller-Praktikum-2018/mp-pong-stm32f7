@@ -1,7 +1,8 @@
-x_pos
-y_pos
-x_velocity
-y_velocity
+struct Ball{x_pos:u16,
+y_pos:u16,
+x_velocity:u16,
+y_velocity:u16}
 
-draw_ball
-move_ball
+impl Ball{
+pub fn draw_ball(){}
+pub fn move_ball(){}}
