@@ -2,8 +2,6 @@
 
 use geometry;
 use lcd;
-use lcd::Framebuffer;
-use lcd::FramebufferL8;
 
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;

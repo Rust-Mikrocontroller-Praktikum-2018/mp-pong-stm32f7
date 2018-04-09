@@ -124,7 +124,8 @@ impl Framebuffer for FramebufferL8 {
         let pixel = y * WIDTH + x;
         // ARGB8888
 /*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
-        unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
+        unsafe { ptr::write_volatile(pixel_ptr,
+        (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
 
         // AL88
         /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
