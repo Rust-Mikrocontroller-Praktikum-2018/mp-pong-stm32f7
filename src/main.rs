@@ -192,10 +192,6 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     let mut fps = fps::init();
     fps.output_enabled = ENABLE_FPS_OUTPUT;
 
-    let mut current_color = 255;
-
-    let mut running_x = 40;
-    let mut running_y = 0;
     //MOVE TO RACKET.RS
     //Racket Starting Positions
     let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
@@ -228,7 +224,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
     let server_gamestate = network::GamestatePacket::new();
 
     loop {
-        let mut need_draw = false;
+        let mut need_draw = false; // This memory space is accessed directly to achive synchronisation. Very unsafe!
         unsafe {
             // Frame synchronisation
             need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
@@ -289,62 +285,4 @@ fn game_loop(
     //move rackets and ball
     update_graphics(gamestate);
     graphics::draw_fps(framebuffer, fps);
-}
-
-fn draw(layer1: &mut lcd::FramebufferL8, running_x: &usize, running_y: &usize, current_color: &u8) {
-    layer1.set_pixel_direct(*running_x, *running_y, *current_color);
-}
-
-fn logic(running_x: &mut usize, running_y: &mut usize) {
-    *running_x += 1;
-    if *running_x >= 480 {
-        *running_x = 40;
-        *running_y += 1;
-        if *running_y >= 272 {
-            *running_y = 0;
-        }
-    }
-}
-
-/*
-// high level
-fn main() {
-    println!("Hello, world!");
-
-    let is_server = false;
-
-    loop {
-        if is_server {
-            server_loop();
-        }
-
-        game_loop();
-    }
-}
-
-fn server_loop() {
-    receive_input_from_clients();
-    game_update();
-    send_state_to_clients();
-}
-
-
-fn game_loop() {
-    receive_state_from_server();
-    read_input();
-    send_input_to_server();
-    draw_stuff();
-}
-    
-    */
-
-fn in_rect(
-    pos_x: usize,
-    pos_y: usize,
-    rect_x: usize,
-    rect_y: usize,
-    rect_width: usize,
-    rect_height: usize,
-) -> bool {
-    pos_x > rect_x && pos_y > rect_y && pos_x < rect_x + rect_width && pos_y < rect_y + rect_height
 }
