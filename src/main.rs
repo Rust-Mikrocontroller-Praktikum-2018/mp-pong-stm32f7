@@ -269,7 +269,7 @@ fn game_loop(
     }
 
     let gamestate = client1.receive_gamestate();
-    input.evaluate_touch(i2c_3, [gamestate.rackets[0].y, gamestate.rackets[1].y]);
+    input::input.evaluate_touch(rackets[0].get_ypos_centre(),rackets[1].get_ypos_centre());
     send_input_to_server(is_server, is_local, client1, client2, input);
 
     // move rackets and ball
