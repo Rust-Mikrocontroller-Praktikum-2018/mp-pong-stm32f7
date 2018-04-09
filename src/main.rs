@@ -263,7 +263,9 @@ fn game_loop(
         calcute_physics(server_gamestate, inputs);
         server.send_gamestate(server_gamestate);
     }
-    network::handle_local(client1, client2, server);
+    if is_local {
+        network::handle_local(client1, client2, server);
+    }
 
     let gamestate = client1.receive_gamestate();
     input.evaluate_touch(i2c_3, [gamestate.rackets[0].y, gamestate.rackets[1].y]);
