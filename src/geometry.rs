@@ -3,7 +3,6 @@ use lcd::Framebuffer;
 use lcd::FramebufferL8;
 
 pub fn draw_rectangle(
-        & self,
         buffer: &mut lcd::FramebufferL8,
         x_left: u16,
         x_right: u16,
@@ -17,4 +16,4 @@ pub fn draw_rectangle(
             }
         }
     }
-pub fn draw_circle(&self, buffer:: &mut lcd::FramebufferL8);
+pub fn draw_circle(buffer:: &mut lcd::FramebufferL8);

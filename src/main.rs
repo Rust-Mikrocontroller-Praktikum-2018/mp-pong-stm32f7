@@ -195,7 +195,11 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
 
     //Create Rackets
     let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
-     for racket in rackets.iter_mut() {racket.draw_racket_start_pos();}
+    //Draw Start Position
+    for racket in rackets.iter_mut(){
+        racket.draw_racket(framebuffer);
+    }
+
 
     // setup local "network"
     let is_server = true; // Server is player 1
