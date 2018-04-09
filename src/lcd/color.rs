@@ -7,7 +7,6 @@ pub struct Color {
 }
 
 impl Color {
-    
     pub const fn rgb(red: u8, green: u8, blue: u8) -> Color {
         Self::rgba(red, green, blue, 255)
     }
