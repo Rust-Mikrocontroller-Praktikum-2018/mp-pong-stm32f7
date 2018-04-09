@@ -21,7 +21,7 @@ impl Input {
     }
 
     // TODO: improve this by passing the current position of the rackets
-    pub fn evaluate_input(&mut self, i2c_3: &mut i2c::I2C) {
+    pub fn evaluate_input(&mut self, i2c_3: &mut i2c::I2C, racket_positions: [u16; 2]) {
         self.top_left = false;
         self.top_right = false;
         self.bottom_left = false;
@@ -31,19 +31,19 @@ impl Input {
         for touch in &touch::touches(i2c_3).unwrap() {
             // Player_1
             if touch.x <= 199 {
-                if touch.y < 136 {
+                if touch.y < racket_positions[0] - 1 {
                     // up
                     self.top_left = true;
-                } else {
+                } else if touch.y > racket_positions[0] + 1 {
                     // down
                     self.bottom_left = true;
                 }
             }
             // Player_2
             if touch.x >= 280 {
-                if touch.y < 136 {
+                if touch.y < racket_positions[1] - 1 {
                     self.top_right = true;
-                } else {
+                } else if touch.y > racket.positions[1] + 1 {
                     self.bottom_right = true;
                 }
             }

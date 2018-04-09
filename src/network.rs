@@ -5,13 +5,13 @@ pub struct GamestatePacket {
 }
 
 struct RacketPacket {
-    x: s16,
-    y: s16,
+    x: s16, // center_x
+    y: s16, // center_y
 }
 
 struct BallPacket {
-    x: s16,
-    y: s16,
+    x: s16, // center_x
+    y: s16, // center_y
     x_vel: s16,
     y_vel: s16,
 }
