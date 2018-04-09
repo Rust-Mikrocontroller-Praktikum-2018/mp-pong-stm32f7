@@ -1,12 +1,15 @@
 #![no_std]
 #![no_main]
 #![feature(compiler_builtins_lib)]
+#![feature(alloc)]
 #![cfg_attr(feature = "cargo-clippy", warn(clippy))]
 
 extern crate compiler_builtins;
 extern crate r0;
 #[macro_use] // To get the hprintf! macro from semi-hosting
 extern crate stm32f7_discovery as stm32f7;
+#[macro_use]
+extern crate alloc;
 
 use embedded::interfaces::gpio::Gpio;
 use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
@@ -58,6 +61,7 @@ fn main(hw: board::Hardware) -> ! {
     if PRINT_START_MESSAGE {
         hprintln!("\n[38;5;40m[1m🔦 Flash complete! ✔️\n[38;5;45m🚀 Program started.(B[m");
     }
+
     let board::Hardware {
         rcc,
         pwr,

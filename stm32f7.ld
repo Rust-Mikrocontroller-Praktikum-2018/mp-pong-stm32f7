@@ -59,7 +59,7 @@ SECTIONS
     }
 
     __HEAP_START = .;
-    . += 50K;
+    . += 280K;
     __HEAP_END = .;
 
     __STACK_START = ORIGIN(RAM) + LENGTH(RAM);

@@ -7,6 +7,7 @@ use board::ltdc;
 use board::ltdc::Ltdc;
 use core::ptr;
 use embedded::interfaces::gpio::OutputPin;
+use alloc::Vec;
 
 #[macro_use]
 mod init;
@@ -71,8 +72,8 @@ pub trait Framebuffer {
 
 pub struct FramebufferL8 {
     pub write_to_buffer_2: bool,
-    pub framebuffer: [u8; WIDTH * HEIGHT],
-    pub backbuffer: [u8; WIDTH * HEIGHT],
+    pub framebuffer: Vec<u8>,
+    pub backbuffer: Vec<u8>,
     pub framebuffer_addr: *const u8,
     pub backbuffer_addr: *const u8,
 }
@@ -83,8 +84,8 @@ impl FramebufferL8 {
 
         FramebufferL8 {
             write_to_buffer_2,
-            framebuffer: [0; WIDTH * HEIGHT],
-            backbuffer: [0; WIDTH * HEIGHT],
+            framebuffer: vec![0; WIDTH * HEIGHT],
+            backbuffer: vec![0; WIDTH * HEIGHT],
             framebuffer_addr: 0 as *const u8,
             backbuffer_addr: 0 as *const u8,
         }
@@ -162,14 +163,14 @@ impl Framebuffer for FramebufferL8 {
 
     fn swap_buffers(&mut self) {
         // here this is faster than the alternative below
-        if self.write_to_buffer_2 {
-            self.framebuffer = self.backbuffer;
+/*        if self.write_to_buffer_2 {
+            self.framebuffer = self.backbuffer.copy();
         } else {
             self.backbuffer = self.framebuffer;
         }
-        self.write_to_buffer_2 = !self.write_to_buffer_2;
+        self.write_to_buffer_2 = !self.write_to_buffer_2;*/
 
-        /*let src_start_ptr;
+        let src_start_ptr;
         let dest_start_ptr;
 
         if self.write_to_buffer_2 {
@@ -196,7 +197,7 @@ impl Framebuffer for FramebufferL8 {
                 dest_start_ptr,
                 count,
             );
-        } */
+        } 
     }
 
     fn clear(&mut self) {
