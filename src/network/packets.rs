@@ -50,6 +50,12 @@ impl InputPacket {
             down: false,
         }
     }
+        pub fn says_move_up(& self)->i8{
+        if self.up!=self.down{
+            if self.up{-1}
+            else {1}
+        }else{0}
+    }
 }
 
 

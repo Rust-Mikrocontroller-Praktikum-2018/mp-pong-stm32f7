@@ -1,5 +1,5 @@
-use geometry;
 use lcd;
+use graphics;
 
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;
@@ -66,7 +66,7 @@ impl Racket {
     }
 
     pub fn draw_racket(&self, buffer: &mut lcd::FramebufferL8) {
-        geometry::draw_rectangle(
+        graphics::draw_rectangle(
             buffer,
             self.xpos_centre - RACKET_WIDTH,
             self.xpos_centre + RACKET_WIDTH,
@@ -88,7 +88,7 @@ impl Racket {
         racket_color: lcd::Color,
     ) {
         //erase old racket
-        geometry::draw_rectangle(
+        graphics::draw_rectangle(
             buffer,
             x_left,
             x_right,
@@ -97,7 +97,7 @@ impl Racket {
             bgcolor,
         );
         //draw new racket
-        geometry::draw_rectangle(
+        graphics::draw_rectangle(
             buffer,
             x_left,
             x_right,

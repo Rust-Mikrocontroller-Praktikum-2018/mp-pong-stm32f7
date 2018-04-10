@@ -15,7 +15,6 @@ extern crate alloc;
 extern crate smoltcp;
 
 mod fps;
-mod geometry;
 mod graphics;
 mod input;
 mod lcd; // use custom LCD implementation
@@ -229,7 +228,7 @@ fn run(
 
     // setup local "network"
     let is_server = false; // Server is player 1
-    let is_local = true;
+    let is_local = false;
 
     let mut client = network::EthClient::new();
     let mut server = network::EthServer::new();
