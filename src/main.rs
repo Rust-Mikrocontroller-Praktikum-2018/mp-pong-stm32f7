@@ -238,8 +238,7 @@ fn run(
         let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
         unsafe {
             // Frame synchronisation
-            //need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
-            need_draw = true;
+            need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
         }
         if need_draw {
             if USE_DOUBLE_BUFFER {

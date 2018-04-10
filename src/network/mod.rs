@@ -17,6 +17,8 @@ use embedded;
 use ethernet;
 use system_clock;
 
+const PORT: u16 = 2018;
+
 pub struct Network<'a> {
     ethernet_interface: EthernetInterface<'a, 'a, ethernet::EthernetDevice>,
     sockets: SocketSet<'a, 'a, 'a>,
@@ -67,7 +69,7 @@ pub fn init(
     }
 
     let mut sockets = SocketSet::new(Vec::new());
-    let endpoint = IpEndpoint::new(IpAddress::Ipv4(ip_addr), 15);
+    let endpoint = IpEndpoint::new(IpAddress::Ipv4(ip_addr), PORT);
 
     let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 256]);
     let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 128]);
@@ -75,11 +77,6 @@ pub fn init(
     example_udp_socket.bind(endpoint).unwrap();
     sockets.add(example_udp_socket);
 
-    let tcp_rx_buffer = TcpSocketBuffer::new(vec![0; ethernet::MTU]);
-    let tcp_tx_buffer = TcpSocketBuffer::new(vec![0; ethernet::MTU]);
-    let mut example_tcp_socket = TcpSocket::new(tcp_rx_buffer, tcp_tx_buffer);
-    example_tcp_socket.listen(endpoint).unwrap();
-    sockets.add(example_tcp_socket);
 
     Some(Network {
         ethernet_interface: ethernet_interface.unwrap(),
@@ -90,7 +87,7 @@ pub fn init(
 fn poll_socket(socket: &mut Socket) -> Result<(), smoltcp::Error> {
     match socket {
         &mut Socket::Udp(ref mut socket) => match socket.endpoint().port {
-            15 => loop {
+            PORT => loop {
                 let reply;
                 match socket.recv() {
                     Ok((data, remote_endpoint)) => {
@@ -102,30 +99,8 @@ fn poll_socket(socket: &mut Socket) -> Result<(), smoltcp::Error> {
                     Err(smoltcp::Error::Exhausted) => break,
                     Err(err) => return Err(err),
                 }
-                socket.send_slice(&reply.0, reply.1)?;
+                socket.send_slice(&reply.0, reply.1);
             },
-            _ => {}
-        },
-        &mut Socket::Tcp(ref mut socket) => match socket.local_endpoint().port {
-            15 => {
-                if !socket.may_recv() {
-                    return Ok(());
-                }
-                let reply = socket.recv(|data| {
-                    if data.len() > 0 {
-                        let mut reply = Vec::from("tcp: ");
-                        let start_index = reply.len();
-                        reply.extend_from_slice(data);
-                        reply[start_index..(start_index + data.len() - 1)].reverse();
-                        (data.len(), Some(reply))
-                    } else {
-                        (data.len(), None)
-                    }
-                })?;
-                if let Some(reply) = reply {
-                    assert_eq!(socket.send_slice(&reply)?, reply.len());
-                }
-            }
             _ => {}
         },
         _ => {}
