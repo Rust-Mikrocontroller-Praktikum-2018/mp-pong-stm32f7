@@ -39,6 +39,7 @@ const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
 
 const ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef]);
 const IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 198]);
+const PARTNER_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 1]);
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -169,6 +170,7 @@ fn main(hw: board::Hardware) -> ! {
         &mut gpio,
         ETH_ADDR,
         IP_ADDR,
+        PARTNER_IP_ADDR,
     ).unwrap(); // TODO: error handling
 
     interrupts::scope(
@@ -283,22 +285,22 @@ fn game_loop(
 ) {
     network.handle_ethernet_packets();
     if is_server {
-        let inputs = server.receive_inputs();
+        let inputs = server.receive_inputs(network);
         calcute_physics(server_gamestate, inputs);
-        server.send_gamestate(server_gamestate);
+        server.send_gamestate(network, server_gamestate);
     }
 
     if is_local {
         network::handle_local(client1, client2, server);
     }
 
-    let gamestate = client1.receive_gamestate();
+    let gamestate = client1.receive_gamestate(network);
     let input = input::evaluate_touch(
         i2c_3,
         rackets[0].get_ypos_centre(),
         rackets[1].get_ypos_centre(),
     );
-    send_input_to_server(is_server, is_local, client1, client2, &input);
+    send_input_to_server(network, is_server, is_local, client1, client2, &input);
 
     // move rackets and ball
     update_graphics(&gamestate);
@@ -306,6 +308,7 @@ fn game_loop(
 }
 
 fn send_input_to_server(
+    network: &mut Network, 
     is_server: bool,
     is_local: bool,
     client1: &mut Client,
@@ -314,14 +317,14 @@ fn send_input_to_server(
 ) {
     if is_server {
         // We are player 1
-        client1.send_input(&InputPacket {
+        client1.send_input(network, &InputPacket {
             up: input.is_up_pressed(),
             down: input.is_down_pressed(),
         });
     }
     if is_local {
         // If we are local, we need to send the input for player 2 as well
-        client2.send_input(&InputPacket {
+        client2.send_input(network, &InputPacket {
             up: input.is_up_pressed2(),
             down: input.is_down_pressed2(),
         });

@@ -10,6 +10,7 @@ pub use self::packets::BallPacket;
 pub use self::packets::GamestatePacket;
 pub use self::packets::InputPacket;
 pub use self::packets::RacketPacket;
+use self::packets::Serializable;
 
 use alloc::Vec;
 use board;
@@ -22,6 +23,7 @@ const PORT: u16 = 2018;
 pub struct Network<'a> {
     ethernet_interface: EthernetInterface<'a, 'a, ethernet::EthernetDevice>,
     sockets: SocketSet<'a, 'a, 'a>,
+    partner_ip_addr: Ipv4Address,
 }
 
 impl<'a> Network<'a> {
@@ -41,6 +43,51 @@ impl<'a> Network<'a> {
             },
         }
     }
+
+    pub fn get_udp_packet(&mut self) -> Result<Option<Vec<u8>>, smoltcp::Error> {
+        match self.ethernet_interface.poll(
+            &mut self.sockets,
+            Instant::from_millis(system_clock::ticks() as i64),
+        ) {
+            Err(e) => Err(e),
+            Ok(socket_changed) => if socket_changed {
+                // let mut socket = &mut self.sockets.iter_mut().nth(0).unwrap();
+                for mut socket in self.sockets.iter_mut() {
+                    return Network::poll_udp_packet(&mut socket);
+                }
+                Ok(None)
+            } else {
+                Ok(None)
+            },
+        }
+    }
+
+    fn poll_udp_packet(socket: &mut Socket) -> Result<Option<Vec<u8>>, smoltcp::Error> {
+        match socket {
+            &mut Socket::Udp(ref mut socket) => match socket.recv() {
+                Ok((data, _remote_endpoint)) => Ok(Some(Vec::from(data))),
+                Err(err) => Err(err),
+            },
+            _ => Ok(None),
+        }
+    }
+
+    pub fn send_udp_packet(&mut self, data: &[u8]) {
+        let endpoint = IpEndpoint::new(IpAddress::Ipv4(self.partner_ip_addr), PORT);
+        for mut socket in self.sockets.iter_mut() {
+            Network::push_udp_packet(&mut socket, endpoint, data);
+        }
+    }
+
+    fn push_udp_packet(socket: &mut Socket, endpoint: IpEndpoint, data: &[u8]) {
+        match socket {
+            &mut Socket::Udp(ref mut socket) => {
+                socket.send_slice(data, endpoint); // TODO: Error handling
+            }
+            _ => {}
+        }
+    }
+    // socket.send_slice(&reply.0, reply.1);
 }
 
 pub fn init(
@@ -51,8 +98,8 @@ pub fn init(
     gpio: &mut embedded::interfaces::gpio::Gpio,
     ethernet_addr: EthernetAddress,
     ip_addr: Ipv4Address,
+    partner_ip_addr: Ipv4Address,
 ) -> Option<Network<'static>> {
-
     // Ethernet init
     let ethernet_interface = ethernet::EthernetDevice::new(
         Default::default(),
@@ -78,10 +125,10 @@ pub fn init(
     udp_socket.bind(endpoint).unwrap();
     sockets.add(udp_socket);
 
-
     Some(Network {
         ethernet_interface: ethernet_interface.unwrap(),
         sockets: sockets,
+        partner_ip_addr: partner_ip_addr,
     })
 }
 
@@ -110,13 +157,13 @@ fn poll_socket(socket: &mut Socket) -> Result<(), smoltcp::Error> {
 }
 
 pub trait Client {
-    fn send_input(&mut self, input: &InputPacket);
-    fn receive_gamestate(&self) -> GamestatePacket;
+    fn send_input(&mut self, network: &mut Network, input: &InputPacket);
+    fn receive_gamestate(&mut self, network: &mut Network) -> GamestatePacket;
 }
 
 pub trait Server {
-    fn receive_inputs(&self) -> [InputPacket; 2];
-    fn send_gamestate(&mut self, gamestate: &GamestatePacket);
+    fn receive_inputs(&mut self, network: &mut Network) -> [InputPacket; 2];
+    fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket);
 }
 
 pub struct LocalClient {
@@ -134,10 +181,10 @@ impl LocalClient {
 }
 
 impl Client for LocalClient {
-    fn send_input(&mut self, input: &InputPacket) {
+    fn send_input(&mut self, _network: &mut Network, input: &InputPacket) {
         self.input = *input;
     }
-    fn receive_gamestate(&self) -> GamestatePacket {
+    fn receive_gamestate(&mut self, _network: &mut Network) -> GamestatePacket {
         self.gamestate
     }
 }
@@ -157,10 +204,10 @@ impl LocalServer {
 }
 
 impl Server for LocalServer {
-    fn receive_inputs(&self) -> [InputPacket; 2] {
+    fn receive_inputs(&mut self, _network: &mut Network) -> [InputPacket; 2] {
         self.player_inputs
     }
-    fn send_gamestate(&mut self, gamestate: &GamestatePacket) {
+    fn send_gamestate(&mut self, _network: &mut Network, gamestate: &GamestatePacket) {
         self.gamestate = *gamestate;
     }
 }
@@ -173,4 +220,72 @@ pub fn handle_local(
     client1.gamestate = server.gamestate;
     client2.gamestate = server.gamestate;
     server.player_inputs = [client1.input, client2.input];
+}
+
+pub struct EthServer {
+    player_inputs: [InputPacket; 2],
+}
+
+impl Server for EthServer {
+    fn receive_inputs(&mut self, network: &mut Network) -> [InputPacket; 2] {
+        let result = network.get_udp_packet();
+        match result {
+            Ok(value) => match value {
+                Some(data) => {
+                    self.player_inputs[0] = InputPacket::deserialize(&data);
+                }
+                None => {}
+            },
+            Err(smoltcp::Error::Exhausted) => {}
+            Err(e) => {
+                hprintln!("Network error: {:?}", e);
+            }
+        }
+        self.player_inputs
+    }
+    fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket) {
+        network.send_udp_packet(&gamestate.serialize());
+    }
+}
+
+impl EthServer {
+    pub fn new() -> EthServer {
+        EthServer {
+            player_inputs: [InputPacket::new(), InputPacket::new()],
+        }
+    }
+}
+
+pub struct EthClient {
+    gamestate: GamestatePacket,
+}
+
+impl Client for EthClient {
+    fn send_input(&mut self, network: &mut Network, input: &InputPacket) {
+        network.send_udp_packet(&input.serialize());
+    }
+    fn receive_gamestate(&mut self, network: &mut Network) -> GamestatePacket {
+        let result = network.get_udp_packet();
+        match result {
+            Ok(value) => match value {
+                Some(data) => {
+                    self.gamestate = GamestatePacket::deserialize(&data);
+                }
+                None => {}
+            },
+            Err(smoltcp::Error::Exhausted) => {}
+            Err(e) => {
+                hprintln!("Network error: {:?}", e);
+            }
+        }
+        self.gamestate
+    }
+}
+
+impl EthClient {
+    pub fn new() -> EthClient {
+        EthClient {
+            gamestate: GamestatePacket::new(),
+        }
+    }
 }
