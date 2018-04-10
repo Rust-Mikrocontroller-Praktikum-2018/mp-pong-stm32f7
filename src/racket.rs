@@ -11,7 +11,7 @@ use core::cmp::max;
 
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;
-const RACKET_HEIGHT: u16 = 30;
+pub const RACKET_HEIGHT: u16 = 30;
 const RACKET_COLOR: lcd::Color = lcd::Color::rgb(150, 150, 30);
 
 //Racket Positions

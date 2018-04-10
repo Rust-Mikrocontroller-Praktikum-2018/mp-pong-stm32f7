@@ -112,7 +112,7 @@ pub fn update_graphics(buffer: &mut lcd::FramebufferL8, gamestate: &network::Gam
     // TODO: implement
     // send gamestate to racket to let racket move
     for id in 0..2{
-        rackets[id].update_racket_pos(buffer,gamestate.get_racket_ypos(id)as u16);
+        rackets[id].update_racket_pos(buffer,gamestate.get_racket_ypos(id) as u16);
     }
     //TODO same for ball
     
