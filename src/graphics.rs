@@ -1,6 +1,8 @@
 use fps;
 use lcd;
 use lcd::Framebuffer;
+use racket;
+use network;
 
 pub fn draw_rectangle(
     buffer: &mut lcd::FramebufferL8,
@@ -106,11 +108,11 @@ pub fn quad(x: usize, y: usize, size: usize, color: &u8, layer1: &mut lcd::Frame
         }
     }
 }
-fn update_graphics(buffer: &mut lcd::FramebufferL8, gamestate: &GamestatePacket,rackets:&mut [racket::Racket;2]) {
+pub fn update_graphics(buffer: &mut lcd::FramebufferL8, gamestate: &network::GamestatePacket,rackets:&mut [racket::Racket;2]) {
     // TODO: implement
     // send gamestate to racket to let racket move
     for id in 0..2{
-        rackets[id].update_racket_position(gamestate.get_racket_ypos(id));
+        rackets[id].update_racket_pos(buffer,gamestate.get_racket_ypos(id)as u16);
     }
     //TODO same for ball
     

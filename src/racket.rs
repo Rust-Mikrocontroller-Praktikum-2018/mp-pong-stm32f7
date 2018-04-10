@@ -4,9 +4,10 @@ use BGCOLOR;
 use lcd;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
-
 use graphics;
-use packets;
+use network;
+use core::cmp::min;
+use core::cmp::max;
 
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;
@@ -78,8 +79,8 @@ impl Racket {
         //erase old racket
         graphics::draw_rectangle(
             buffer,
-            self.x_pos_centre - RACKET_WIDTH,
-            self.x_pos_centre + RACKET_WIDTH,
+            self.xpos_centre - RACKET_WIDTH,
+            self.xpos_centre + RACKET_WIDTH,
             y_top_erase,
             y_bottom_erase,
             BGCOLOR,
@@ -87,8 +88,8 @@ impl Racket {
         //draw new racket
         graphics::draw_rectangle(
             buffer,
-            x_pos_centre - RACKET_WIDTH,
-            x_pos_centre + RACKET_WIDTH,
+            self.xpos_centre - RACKET_WIDTH,
+            self.xpos_centre + RACKET_WIDTH,
             y_top_draw,
             y_bottom_draw,
             RACKET_COLOR,
@@ -129,7 +130,7 @@ impl Racket {
             //if racket moved up
             if self.get_ypos_centre() < self.get_ypos_centre_old() {
                 //TODO CREATE FN MOVE RACKET
-                self.move_racket(
+                self.draw_moved_racket(
                     framebuffer,
                     max(
                         self.get_ypos_centre() + RACKET_HEIGHT + 1,

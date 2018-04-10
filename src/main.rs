@@ -292,7 +292,7 @@ fn game_loop_local(
     local_input_2.down = input.is_down_pressed2();
 
     // move rackets and ball
-    update_graphics(&local_gamestate);
+    graphics::update_graphics(framebuffer, local_gamestate, rackets);
 
     graphics::draw_fps(framebuffer, fps);
 }
@@ -327,7 +327,7 @@ fn game_loop_network(
     local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
 
     // move rackets and ball
-    update_graphics(framebuffer, local_gamestate, rackets);
+    graphics::update_graphics(framebuffer, local_gamestate, rackets);
 
     graphics::draw_fps(framebuffer, fps);
 }
