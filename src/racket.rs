@@ -1,15 +1,12 @@
-#![feature(const_fn)]
-
 use lcd;
-use lcd::Framebuffer;
-use lcd::FramebufferL8;
+use graphics;
 
-  //general Racket Properties
-    const RACKET_WIDTH :u16= 10;
-    const RACKET_HEIGHT : u16=30;
-    const RACKET_COLOR : lcd::Color=lcd::Color::rgb(150, 150, 30);
+//general Racket Properties
+const RACKET_WIDTH: u16 = 10;
+const RACKET_HEIGHT: u16 = 30;
+const RACKET_COLOR: lcd::Color = lcd::Color::rgb(150, 150, 30);
 
-    
+/*
     //Racket Starting Positions
     let xpos_centre_p1 = 0 + 5 + RACKET_WIDTH;
     let xpos_centre_p2 = 479 - 5 - RACKET_WIDTH;
@@ -24,8 +21,7 @@ use lcd::FramebufferL8;
             racket.get_ypos_centre() + RACKET_HEIGHT,
             RACKET_COLOR,
         );
-    }
-
+    }*/
 
 //Racket Positions
 pub struct Racket {
@@ -36,16 +32,19 @@ pub struct Racket {
 impl Racket {
     //Create new Racket
     pub fn new(player_id: u16) -> Racket {
-        if player_id=0{
-        Racket {
-            xpos_centre: RACKET_WIDTH,
-            ypos_centre: 135,      ypos_centre_old: 135,
-        }}
-        else if player_id=1{
-        Racket {
-            xpos_centre: 479-RACKET_WIDTH,
-            ypos_centre: 135,      ypos_centre_old: 135,
-        }}
+        if player_id == 0 {
+            Racket {
+                xpos_centre: RACKET_WIDTH,
+                ypos_centre: 135,
+                ypos_centre_old: 135,
+            }
+        } else {
+            Racket {
+                xpos_centre: 479 - RACKET_WIDTH,
+                ypos_centre: 135,
+                ypos_centre_old: 135,
+            }
+        }
     }
     //set Centre Point Coordinates
     pub fn set_ypos_centre(&mut self, ypos_centre_set: u16) {
@@ -54,32 +53,30 @@ impl Racket {
     pub fn set_ypos_centre_old(&mut self, ypos_centre_set: u16) {
         self.ypos_centre_old = ypos_centre_set;
     }
-   
+
     //get Centre Point Coordinates
-    pub fn get_xpos_centre(& self) -> u16 {
+    pub fn get_xpos_centre(&self) -> u16 {
         self.xpos_centre
     }
-    pub fn get_ypos_centre(& self) -> u16 {
+    pub fn get_ypos_centre(&self) -> u16 {
         self.ypos_centre
     }
-    pub fn get_ypos_centre_old(& self) -> u16 {
+    pub fn get_ypos_centre_old(&self) -> u16 {
         self.ypos_centre_old
     }
-    
-    
-    pub fn draw_racket(&self,buffer: &mut lcd::FramebufferL8,)
-    {geometry::draw_rectangle(
+
+    pub fn draw_racket(&self, buffer: &mut lcd::FramebufferL8) {
+        graphics::draw_rectangle(
             buffer,
-            self.xpos_centre-RACKET_WIDTH,
-            self.xpos_centre+RACKET_WIDTH,
-            self.ypos_centre-RACKET_HEIGHT,
-            self.ypos_centre+RACKET_HEIGHT,
+            self.xpos_centre - RACKET_WIDTH,
+            self.xpos_centre + RACKET_WIDTH,
+            self.ypos_centre - RACKET_HEIGHT,
+            self.ypos_centre + RACKET_HEIGHT,
             RACKET_COLOR,
         );
-
     }
     pub fn move_racket(
-        & self,
+        &self,
         buffer: &mut lcd::FramebufferL8,
         x_left: u16,
         x_right: u16,
@@ -91,7 +88,7 @@ impl Racket {
         racket_color: lcd::Color,
     ) {
         //erase old racket
-        geometry::draw_rectangle(
+        graphics::draw_rectangle(
             buffer,
             x_left,
             x_right,
@@ -100,7 +97,7 @@ impl Racket {
             bgcolor,
         );
         //draw new racket
-        geometry::draw_rectangle(
+        graphics::draw_rectangle(
             buffer,
             x_left,
             x_right,
@@ -110,5 +107,3 @@ impl Racket {
         );
     }
 }
-
-

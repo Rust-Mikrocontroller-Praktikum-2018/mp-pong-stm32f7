@@ -3,11 +3,11 @@
 pub use self::color::Color;
 pub use self::init::init;
 
+use alloc::Vec;
 use board::ltdc;
 use board::ltdc::Ltdc;
 use core::ptr;
 use embedded::interfaces::gpio::OutputPin;
-use alloc::Vec;
 
 #[macro_use]
 mod init;
@@ -124,7 +124,8 @@ impl Framebuffer for FramebufferL8 {
         let pixel = y * WIDTH + x;
         // ARGB8888
 /*        let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u32;
-        unsafe { ptr::write_volatile(pixel_ptr, (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
+        unsafe { ptr::write_volatile(pixel_ptr,
+        (color as u32) << 8 | (color as u32) | 0xffff_0000); };*/
 
         // AL88
         /*let pixel_ptr = (self.current_base_addr() + pixel * LAYER_1_OCTETS_PER_PIXEL) as *mut u16;
@@ -176,28 +177,23 @@ impl Framebuffer for FramebufferL8 {
         if self.write_to_buffer_2 {
             src_start_ptr = self.get_backbuffer_addr() as *mut u32;
             dest_start_ptr = self.get_framebuffer_addr() as *mut u32;
-            
         } else {
             src_start_ptr = self.get_framebuffer_addr() as *mut u32;
             dest_start_ptr = self.get_backbuffer_addr() as *mut u32;
         }
 
         self.write_to_buffer_2 = !self.write_to_buffer_2;
-        
+
         let mut count = WIDTH * HEIGHT;
         if LAYER_1_OCTETS_PER_PIXEL == 1 {
-            count /= 4;                  // we only store u8 for every pixel
+            count /= 4; // we only store u8 for every pixel
         }
         if LAYER_1_OCTETS_PER_PIXEL == 2 {
             count /= 2;
         }
         unsafe {
-            ptr::copy_nonoverlapping(
-                src_start_ptr,
-                dest_start_ptr,
-                count,
-            );
-        } 
+            ptr::copy_nonoverlapping(src_start_ptr, dest_start_ptr, count);
+        }
     }
 
     fn clear(&mut self) {
