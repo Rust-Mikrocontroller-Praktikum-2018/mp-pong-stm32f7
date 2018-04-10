@@ -64,6 +64,5 @@ pub fn evaluate_touch(
 
             }
         }
-    }
     input
 }

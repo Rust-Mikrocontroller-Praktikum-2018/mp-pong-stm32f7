@@ -20,7 +20,6 @@ mod input;
 mod lcd; // use custom LCD implementation
 mod network;
 mod racket;
-mod input;
 mod physics;
 
 use core::ptr;
