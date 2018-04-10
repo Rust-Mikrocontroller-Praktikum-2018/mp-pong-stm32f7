@@ -225,6 +225,7 @@ fn main(hw: board::Hardware) -> ! {
                 )
                 .expect("LcdTft interrupt already used");
 
+            framebuffer.clear();
             hprintln!("Start run()");
             //// INIT COMPLETE ////
             let mut fps = fps::init();
@@ -238,8 +239,8 @@ fn main(hw: board::Hardware) -> ! {
             }
 
             // setup local "network"
-            let is_server = true; // Server is player 1
-            let is_local = false;
+            let is_server = false; // Server is player 1
+            let is_local = true;
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
@@ -248,7 +249,6 @@ fn main(hw: board::Hardware) -> ! {
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();
 
-            framebuffer.clear();
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
