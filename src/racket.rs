@@ -4,6 +4,7 @@ use BGCOLOR;
 use lcd;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
+
 use graphics;
 
 //general Racket Properties
@@ -19,7 +20,9 @@ pub struct Racket {
 }
 impl Racket {
     //Create new Racket
+
     pub fn new(player_id: u8) -> Racket {
+
         if player_id == 0 {
             Racket {
                 xpos_centre: RACKET_WIDTH,
@@ -63,7 +66,9 @@ impl Racket {
             RACKET_COLOR,
         );
     }
+
     pub fn draw_moved_racket(
+
         &self,
         buffer: &mut lcd::FramebufferL8,
         x_pos_centre: u16,

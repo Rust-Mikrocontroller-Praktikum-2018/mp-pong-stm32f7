@@ -1,11 +1,22 @@
-use stm32f7::{touch, i2c};
-struct Input {
+use i2c;
+use touch;
+
+pub struct Input {
+
     top_left: bool,
     bottom_left: bool,
     top_right: bool,
     bottom_right: bool,
 }
 impl Input {
+    pub fn new() -> Input {
+        Input {
+            top_left: false,
+            bottom_left: false,
+            top_right: false,
+            bottom_right: false,
+        }
+    }
     pub fn is_up_pressed(&self) -> bool {
         self.top_left
     }
@@ -20,6 +31,14 @@ impl Input {
     pub fn is_down_pressed2(&self) -> bool {
         self.bottom_right
     }
+}
+pub fn evaluate_touch(
+    i2c_3: &mut i2c::I2C,
+    racket_1_ypos_centre: u16,
+    racket_2_ypos_centre: u16,
+) -> Input {
+    let mut input = Input::new();
+
 
     pub fn evaluate_touch(
         &mut self,
@@ -56,7 +75,9 @@ impl Input {
                 else if touch.y > racket_2_ypos_centre {
                     self.bottom_right = true;
                 }
+
             }
         }
     }
+    input
 }

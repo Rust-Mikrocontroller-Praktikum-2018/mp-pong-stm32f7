@@ -4,6 +4,7 @@
 #![feature(alloc)]
 #![cfg_attr(feature = "cargo-clippy", warn(clippy))]
 #![feature(const_fn)]
+#![allow(dead_code)] // TODO: remove if all features are used to find dead code4
 
 extern crate compiler_builtins;
 extern crate r0;
@@ -11,33 +12,35 @@ extern crate r0;
 extern crate stm32f7_discovery as stm32f7;
 #[macro_use]
 extern crate alloc;
+extern crate smoltcp;
 
 mod fps;
 mod graphics;
+mod input;
 mod lcd; // use custom LCD implementation
 mod network;
 mod racket;
 mod input;
 mod physics;
 
-
-use input::Input;
-use network::GamestatePacket;
-use core::cmp::max;
-use core::cmp::min;
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
+use input::Input;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
-use network::Client;
-use network::Server;
-use stm32f7::{board, embedded, interrupts, sdram, system_clock, touch, i2c};
+use network::Network;
+use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server};
+use smoltcp::wire::{EthernetAddress, Ipv4Address};
+use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
-//Background Colour
 const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
+
+const ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef]);
+const IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 198]);
+const PARTNER_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 1]);
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -97,77 +100,88 @@ fn main(hw: board::Hardware) -> ! {
         gpio_j,
         gpio_k,
         i2c_3,
-        sai_2,
+        nvic,
+        ethernet_mac,
+        ethernet_dma,
+        syscfg,
+        ..
+    } = hw;
+
+    let mut gpio = Gpio::new(
+        gpio_a,
+        gpio_b,
+        gpio_c,
+        gpio_d,
+        gpio_e,
+        gpio_f,
+        gpio_g,
+        gpio_h,
+        gpio_i,
+        gpio_j,
+        gpio_k,
+    );
+
+    system_clock::init(rcc, pwr, flash);
+
+    // enable all gpio ports
+    rcc.ahb1enr.update(|r| {
+        r.set_gpioaen(true);
+        r.set_gpioben(true);
+        r.set_gpiocen(true);
+        r.set_gpioden(true);
+        r.set_gpioeen(true);
+        r.set_gpiofen(true);
+        r.set_gpiogen(true);
+        r.set_gpiohen(true);
+        r.set_gpioien(true);
+        r.set_gpiojen(true);
+        r.set_gpioken(true);
+    });
+
+    // init sdram (for display)
+    sdram::init(rcc, fmc, &mut gpio);
+
+    // init touch screen
+    i2c::init_pins_and_clocks(rcc, &mut gpio);
+    let mut i2c_3 = i2c::init(i2c_3);
+    touch::check_family_id(&mut i2c_3).unwrap();
+
+    let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
+    lcd.set_background_color(lcd::Color {
+        red: 0,
+        green: 0,
+        blue: 0,
+        alpha: 255,
+    });
+    let mut framebuffer = FramebufferL8::new();
+    framebuffer.init();
+    lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
+    lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
+
+    if !USE_DOUBLE_BUFFER {
+        lcd.swap_buffers();
+    }
+    lcd.swap_buffers();
+
+    let mut network = network::init(
+        rcc,
         syscfg,
         ethernet_mac,
         ethernet_dma,
-        nvic,
-        ..
-    } = hw;
+        &mut gpio,
+        ETH_ADDR,
+        IP_ADDR,
+        PARTNER_IP_ADDR,
+    ).unwrap(); // TODO: error handling
+
     interrupts::scope(
         nvic,
         |_| {},
         move |interrupt_table| {
-            let mut gpio = Gpio::new(
-                gpio_a,
-                gpio_b,
-                gpio_c,
-                gpio_d,
-                gpio_e,
-                gpio_f,
-                gpio_g,
-                gpio_h,
-                gpio_i,
-                gpio_j,
-                gpio_k,
-            );
-
-            system_clock::init(rcc, pwr, flash);
-
-            // enable all gpio ports
-            rcc.ahb1enr.update(|r| {
-                r.set_gpioaen(true);
-                r.set_gpioben(true);
-                r.set_gpiocen(true);
-                r.set_gpioden(true);
-                r.set_gpioeen(true);
-                r.set_gpiofen(true);
-                r.set_gpiogen(true);
-                r.set_gpiohen(true);
-                r.set_gpioien(true);
-                r.set_gpiojen(true);
-                r.set_gpioken(true);
-            });
-
-            // init sdram (for display)
-            sdram::init(rcc, fmc, &mut gpio);
-
-            // init touch screen
-            i2c::init_pins_and_clocks(rcc, &mut gpio);
-            let mut i2c_3 = i2c::init(i2c_3);
-            touch::check_family_id(&mut i2c_3).unwrap();
-
-            let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
-            lcd.set_background_color(lcd::Color {
-                red: 0,
-                green: 0,
-                blue: 0,
-                alpha: 255,
-            });
-            let mut framebuffer = FramebufferL8::new();
-            framebuffer.init();
-            lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
-            lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
-
-            if !USE_DOUBLE_BUFFER {
-                lcd.swap_buffers();
-            }
-            lcd.swap_buffers();
-
             let should_draw_now = false;
             let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
 
-            let interrupt_handler = interrupt_table
+            let _interrupt_handler = interrupt_table
                 .register(
                     interrupts::interrupt_request::InterruptRequest::LcdTft,
                     interrupts::Priority::P1,
@@ -186,41 +200,54 @@ fn main(hw: board::Hardware) -> ! {
                 )
                 .expect("LcdTft interrupt already used");
 
-            run(&mut framebuffer, &mut i2c_3, should_draw_now_ptr)
+            run(
+                &mut framebuffer,
+                &mut i2c_3,
+                should_draw_now_ptr,
+                &mut network,
+            )
         },
     )
 }
 
-fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_ptr: usize) -> ! {
+fn run(
+    framebuffer: &mut FramebufferL8,
+    i2c_3: &mut i2c::I2C,
+    should_draw_now_ptr: usize,
+    network: &mut Network,
+) -> ! {
     hprintln!("Start run()");
     //// INIT COMPLETE ////
     let mut fps = fps::init();
     fps.output_enabled = ENABLE_FPS_OUTPUT;
 
-
-    //Create Rackets
+    // Create Rackets
     let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
-    //Draw Start Position
-    for racket in rackets.iter_mut(){
+    // Draw Start Position
+    for racket in rackets.iter_mut() {
         racket.draw_racket(framebuffer);
     }
+
 
     let mut current_input=input::Input{top_left: false,
     bottom_left: false,
     top_right:false,
     bottom_right:false};
 
-    // setup local "network"
-    let is_server = true; // Server is player 1
-    let is_local = true;
 
-    let client1 = network::LocalClient::new();
-    let client2 = network::LocalClient::new();
-    let server = network::LocalServer::new();
-    let server_gamestate = network::GamestatePacket::new();
+    // setup local "network"
+    let is_server = false; // Server is player 1
+    let is_local = false;
+
+    let mut client = network::EthClient::new();
+    let mut server = network::EthServer::new();
+    let mut server_gamestate = network::GamestatePacket::new();
+
+    let mut local_input_1 = network::InputPacket::new();
+    let mut local_input_2 = network::InputPacket::new();
 
     loop {
-        let mut need_draw = false; // This memory space is accessed directly to achive synchronisation. Very unsafe!
+        let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
         unsafe {
             // Frame synchronisation
             need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
@@ -235,13 +262,15 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
                 i2c_3,
                 &fps,
                 &mut rackets,
-                &mut client1,
-                &mut client2,
+                &mut client,
                 &mut server,
+                &mut local_input_1,
+                &mut local_input_2,
                 &mut server_gamestate,
                 current_input,
                 is_server,
                 is_local,
+                network,
             );
 
             // end of frame
@@ -258,46 +287,91 @@ fn game_loop(
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
-    client1: &mut Client,
-    client2: &mut Client,
-    server: &mut Server,
-    server_gamestate: &mut GamestatePacket,
-    current_input: &mut Input, 
-    is_server: bool,
-    is_local:bool,
-) {
-    if is_server {
-        let inputs: [network::InputPacket; 2]= server.receive_inputs();
-        physics::calculate_physics(server_gamestate, inputs);
-        server.send_gamestate(server_gamestate);
-    }
+
     
+    current_input: &mut Input,
+    client: &mut EthClient,
+    server: &mut EthServer,
+    local_input_1: &mut InputPacket,
+    local_input_2: &mut InputPacket,
+    local_gamestate: &mut GamestatePacket,
+
+    is_server: bool,
+    is_local: bool,
+    network: &mut Network,
+) {
+
     if is_local {
-        network::handle_local(client1, client2, server);
+        handle_local_calculations(local_gamestate, local_input_1, local_input_2);
+    } else if is_server {
+        handle_network_server(server, network, local_gamestate, local_input_1);
+    } else {
+        handle_network_client(client, network, local_gamestate, local_input_1);
     }
 
-    let gamestate = client1.receive_gamestate();
-    current_input.evaluate_touch(i2c_3, rackets[0].get_ypos_centre(),rackets[1].get_ypos_centre());
-    send_input_to_server(is_server, is_local, client1, client2, current_input);
+
+    // handle input
+    let input = input::evaluate_touch(
+        i2c_3,
+        rackets[0].get_ypos_centre(),
+        rackets[1].get_ypos_centre(),
+    );
+    if is_local {
+        local_input_1.up = input.is_up_pressed();
+        local_input_1.down = input.is_down_pressed();
+        local_input_2.up = input.is_up_pressed2();
+        local_input_2.down = input.is_down_pressed2();
+    } else {
+        local_input_1.up = input.is_up_pressed()|| input.is_up_pressed2();
+        local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
+    }
 
     // move rackets and ball
-    //update_graphics(gamestate);
+    update_graphics(&local_gamestate);
+
     graphics::draw_fps(framebuffer, fps);
 }
 
+fn handle_local_calculations(
+    local_gamestate: &mut GamestatePacket,
+    local_input_1: &InputPacket,
+    local_input_2: &InputPacket,
+) {
+    let inputs = [*local_input_1, *local_input_2];
+    calcute_physics(local_gamestate, inputs);
+}
+
+fn handle_network_server(
+    server: &mut EthServer,
+    network: &mut Network,
+    local_gamestate: &mut GamestatePacket,
+    local_input_1: &InputPacket,
+) {
+    let inputs = [*local_input_1, server.receive_input(network)];
+    calcute_physics(local_gamestate, inputs);
+    server.send_gamestate(network, local_gamestate);
+}
 
 
-fn send_input_to_server(is_server: bool, is_local: bool, client1: &mut Client, client2: &mut Client, input: &Input) {
-    if is_server { // We are player 1
-        client1.send_input(network::InputPacket {
-            up: input.is_up_pressed(),
-            down: input.is_down_pressed()
-        });
-    }
-    if is_local { // If we are local, we need to send the input for player 2 as well
-        client2.send_input(network::InputPacket {
-            up: input.is_up_pressed2(),
-            down: input.is_down_pressed2()
-        });
-    }
+fn handle_network_client(
+    client: &mut EthClient,
+    network: &mut Network,
+    local_gamestate: &mut GamestatePacket,
+    local_input_1: &InputPacket
+) {
+    *local_gamestate = client.receive_gamestate(network);
+    client.send_input(network, local_input_1);
+}
+
+fn update_graphics(gamestate: &GamestatePacket) {
+    // TODO: implement
+    // TODO: move into module
+    let _ = gamestate;
+}
+
+fn calcute_physics(gamestate: &GamestatePacket, inputs: [InputPacket; 2]) {
+    // TODO: implement
+    // TODO: move into module
+    let _ = gamestate;
+    let _ = inputs;
 }
