@@ -171,8 +171,7 @@ fn main(hw: board::Hardware) -> ! {
         ETH_ADDR,
         IP_ADDR,
         PARTNER_IP_ADDR,
-    ).unwrap(); // TODO: error handling
-
+    ); // TODO: error handling
     interrupts::scope(
         nvic,
         |_| {},
@@ -199,81 +198,106 @@ fn main(hw: board::Hardware) -> ! {
                 )
                 .expect("LcdTft interrupt already used");
 
-            run(
-                &mut framebuffer,
-                &mut i2c_3,
-                should_draw_now_ptr,
-                &mut network,
-            )
+            hprintln!("Start run()");
+            //// INIT COMPLETE ////
+            let mut fps = fps::init();
+            fps.output_enabled = ENABLE_FPS_OUTPUT;
+
+            // Create Rackets
+            let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
+            // Draw Start Position
+            for racket in rackets.iter_mut() {
+                racket.draw_racket(&mut framebuffer);
+            }
+
+            // setup local "network"
+            let is_server = false; // Server is player 1
+            let is_local = true;
+
+            let mut client = network::EthClient::new();
+            let mut server = network::EthServer::new();
+            let mut server_gamestate = network::GamestatePacket::new();
+
+            let mut local_input_1 = network::InputPacket::new();
+            let mut local_input_2 = network::InputPacket::new();
+
+            loop {
+                let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
+                unsafe {
+                    // Frame synchronisation
+                    need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
+                }
+                if need_draw {
+                    if USE_DOUBLE_BUFFER {
+                        framebuffer.swap_buffers();
+                    }
+
+                    if is_local {
+                        game_loop_local(
+                            &mut framebuffer,
+                            &mut i2c_3,
+                            &fps,
+                            &mut rackets,
+                            &mut local_input_1,
+                            &mut local_input_2,
+                            &mut server_gamestate,
+                        )
+                    } else {
+                        game_loop_network(
+                            &mut framebuffer,
+                            &mut i2c_3,
+                            &fps,
+                            &mut rackets,
+                            &mut client,
+                            &mut server,
+                            &mut local_input_1,
+                            &mut local_input_2,
+                            &mut server_gamestate,
+                            is_server,
+                            network.as_mut().unwrap(),
+                        );
+                    }
+
+                    // end of frame
+                    fps.count_frame();
+                    unsafe {
+                        ptr::write_volatile(should_draw_now_ptr as *mut bool, false);
+                    }
+                }
+            }
         },
     )
 }
 
-fn run(
+fn game_loop_local(
     framebuffer: &mut FramebufferL8,
     i2c_3: &mut i2c::I2C,
-    should_draw_now_ptr: usize,
-    network: &mut Network,
-) -> ! {
-    hprintln!("Start run()");
-    //// INIT COMPLETE ////
-    let mut fps = fps::init();
-    fps.output_enabled = ENABLE_FPS_OUTPUT;
+    fps: &fps::FpsCounter,
+    rackets: &mut [racket::Racket; 2],
+    local_input_1: &mut InputPacket,
+    local_input_2: &mut InputPacket,
+    local_gamestate: &mut GamestatePacket,
+) {
+    handle_local_calculations(local_gamestate, local_input_1, local_input_2);
 
-    // Create Rackets
-    let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
-    // Draw Start Position
-    for racket in rackets.iter_mut() {
-        racket.draw_racket(framebuffer);
-    }
+    // handle input
+    let input = input::evaluate_touch(
+        i2c_3,
+        rackets[0].get_ypos_centre(),
+        rackets[1].get_ypos_centre(),
+    );
+    local_input_1.up = input.is_up_pressed();
+    local_input_1.down = input.is_down_pressed();
+    local_input_2.up = input.is_up_pressed2();
+    local_input_2.down = input.is_down_pressed2();
 
-    // setup local "network"
-    let is_server = false; // Server is player 1
-    let is_local = true;
+    // move rackets and ball
+    update_graphics(&local_gamestate);
 
-    let mut client = network::EthClient::new();
-    let mut server = network::EthServer::new();
-    let mut server_gamestate = network::GamestatePacket::new();
-
-    let mut local_input_1 = network::InputPacket::new();
-    let mut local_input_2 = network::InputPacket::new();
-
-    loop {
-        let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
-        unsafe {
-            // Frame synchronisation
-            need_draw = ptr::read_volatile(should_draw_now_ptr as *mut bool);
-        }
-        if need_draw {
-            if USE_DOUBLE_BUFFER {
-                framebuffer.swap_buffers();
-            }
-
-            game_loop(
-                framebuffer,
-                i2c_3,
-                &fps,
-                &mut rackets,
-                &mut client,
-                &mut server,
-                &mut local_input_1,
-                &mut local_input_2,
-                &mut server_gamestate,
-                is_server,
-                is_local,
-                network,
-            );
-
-            // end of frame
-            fps.count_frame();
-            unsafe {
-                ptr::write_volatile(should_draw_now_ptr as *mut bool, false);
-            }
-        }
-    }
+    graphics::draw_fps(framebuffer, fps);
 }
 
-fn game_loop(
+fn game_loop_network(
     framebuffer: &mut FramebufferL8,
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
@@ -284,12 +308,9 @@ fn game_loop(
     local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
     is_server: bool,
-    is_local: bool,
     network: &mut Network,
 ) {
-    if is_local {
-        handle_local_calculations(local_gamestate, local_input_1, local_input_2);
-    } else if is_server {
+    if is_server {
         handle_network_server(server, network, local_gamestate, local_input_1);
     } else {
         handle_network_client(client, network, local_gamestate, local_input_1);
@@ -301,15 +322,9 @@ fn game_loop(
         rackets[0].get_ypos_centre(),
         rackets[1].get_ypos_centre(),
     );
-    if is_local {
-        local_input_1.up = input.is_up_pressed();
-        local_input_1.down = input.is_down_pressed();
-        local_input_2.up = input.is_up_pressed2();
-        local_input_2.down = input.is_down_pressed2();
-    } else {
-        local_input_1.up = input.is_up_pressed() || input.is_up_pressed2();
-        local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
-    }
+
+    local_input_1.up = input.is_up_pressed() || input.is_up_pressed2();
+    local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
 
     // move rackets and ball
     update_graphics(&local_gamestate);
