@@ -1,7 +1,7 @@
 use network;
 use racket::RACKET_HEIGHT;
 
-const RACKET_SPEED: i16 = 5;
+const RACKET_SPEED: i16 = 8;
 pub fn calculate_physics(
     server_gamestate: &mut network::GamestatePacket,
     inputs: [network::InputPacket; 2],

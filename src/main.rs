@@ -21,6 +21,7 @@ mod lcd; // use custom LCD implementation
 mod network;
 mod physics;
 mod racket;
+mod game;
 
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
@@ -32,15 +33,17 @@ use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::FontRenderer;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 use stm32f7::lcd::Color;
+use game::GameState;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
 const BGCOLOR: u8 = 22;
 
-const ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef]);
-const IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 198]);
-const PARTNER_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 1]);
+const CLIENT_ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x11, 0x22, 0x33, 0x44, 0x01]);
+const CLIENT_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 2]);
+const SERVER_ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x11, 0x22, 0x33, 0x44, 0x02]);
+const SERVER_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 1]);
 
 static TTF: &[u8] = include_bytes!("../res/RobotoMono-Bold.ttf");
 
@@ -198,10 +201,12 @@ fn main(hw: board::Hardware) -> ! {
         ethernet_mac,
         ethernet_dma,
         &mut gpio,
-        ETH_ADDR,
-        IP_ADDR,
-        PARTNER_IP_ADDR,
+        CLIENT_ETH_ADDR,
+        CLIENT_IP_ADDR,
+        SERVER_IP_ADDR,
     ); // TODO: error handling
+
+    let mut gamestate = GameState::SPLASH;
 
     interrupts::scope(
         nvic,
@@ -263,31 +268,40 @@ fn main(hw: board::Hardware) -> ! {
                     if USE_DOUBLE_BUFFER {
                         framebuffer.swap_buffers();
                     }
-
-                    if is_local {
-                        game_loop_local(
-                            &mut framebuffer,
-                            &mut i2c_3,
-                            &fps,
-                            &mut rackets,
-                            &mut local_input_1,
-                            &mut local_input_2,
-                            &mut server_gamestate,
-                        )
-                    } else {
-                        game_loop_network(
-                            &mut framebuffer,
-                            &mut i2c_3,
-                            &fps,
-                            &mut rackets,
-                            &mut client,
-                            &mut server,
-                            &mut local_input_1,
-                            &mut server_gamestate,
-                            is_server,
-                            network.as_mut().unwrap(),
-                        );
-                    }
+                    
+                    gamestate = match(gamestate) {
+                        GameState::SPLASH => {GameState::GAME_RUNNING_LOCAL},
+                        GameState::CHOOSE_LOCAL_REMOTE => {GameState::CHOOSE_LOCAL_REMOTE},
+                        GameState::CHOOSE_CLIENT_SERVER => {GameState::CHOOSE_CLIENT_SERVER},
+                        GameState::CONNECT_NETWORK => {GameState::CONNECT_NETWORK},
+                        GameState::GAME_RUNNING_LOCAL => {
+                           game::game_loop_local(
+                                &mut framebuffer,
+                                &mut i2c_3,
+                                &fps,
+                                &mut rackets,
+                                &mut local_input_1,
+                                &mut local_input_2,
+                                &mut server_gamestate,
+                            );
+                            GameState::GAME_RUNNING_LOCAL
+                        },
+                        GameState::GAME_RUNNING_NETWORK => {
+                            game::game_loop_network(
+                                &mut framebuffer,
+                                &mut i2c_3,
+                                &fps,
+                                &mut rackets,
+                                &mut client,
+                                &mut server,
+                                &mut local_input_1,
+                                &mut server_gamestate,
+                                is_server,
+                                network.as_mut().unwrap(),
+                            );
+                            GameState::GAME_RUNNING_NETWORK
+                        },
+                    };
 
                     // end of frame
                     fps.count_frame();
@@ -298,81 +312,4 @@ fn main(hw: board::Hardware) -> ! {
             }
         },
     )
-}
-
-fn game_loop_local(
-    framebuffer: &mut FramebufferL8,
-    i2c_3: &mut i2c::I2C,
-    fps: &fps::FpsCounter,
-    rackets: &mut [racket::Racket; 2],
-    local_input_1: &mut InputPacket,
-    local_input_2: &mut InputPacket,
-    local_gamestate: &mut GamestatePacket,
-) {
-    handle_local_calculations(local_gamestate, local_input_1, local_input_2);
-
-    // handle input
-    input::evaluate_touch_two_players(i2c_3, local_input_1, local_input_2);
-
-    // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets);
-
-    graphics::draw_fps(framebuffer, fps);
-}
-
-fn game_loop_network(
-    framebuffer: &mut FramebufferL8,
-    i2c_3: &mut i2c::I2C,
-    fps: &fps::FpsCounter,
-    rackets: &mut [racket::Racket; 2],
-    client: &mut EthClient,
-    server: &mut EthServer,
-    local_input_1: &mut InputPacket,
-    local_gamestate: &mut GamestatePacket,
-    is_server: bool,
-    network: &mut Network,
-) {
-    if is_server {
-        handle_network_server(server, network, local_gamestate, local_input_1);
-    } else {
-        handle_network_client(client, network, local_gamestate, local_input_1);
-    }
-
-    // handle input
-    input::evaluate_touch_one_player(i2c_3, local_input_1);
-
-    // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets);
-
-    graphics::draw_fps(framebuffer, fps);
-}
-
-fn handle_local_calculations(
-    local_gamestate: &mut GamestatePacket,
-    local_input_1: &InputPacket,
-    local_input_2: &InputPacket,
-) {
-    let inputs = [*local_input_1, *local_input_2];
-    physics::calculate_physics(local_gamestate, inputs);
-}
-
-fn handle_network_server(
-    server: &mut EthServer,
-    network: &mut Network,
-    local_gamestate: &mut GamestatePacket,
-    local_input_1: &InputPacket,
-) {
-    let inputs = [*local_input_1, server.receive_input(network)];
-    physics::calculate_physics(local_gamestate, inputs);
-    server.send_gamestate(network, local_gamestate);
-}
-
-fn handle_network_client(
-    client: &mut EthClient,
-    network: &mut Network,
-    local_gamestate: &mut GamestatePacket,
-    local_input_1: &InputPacket,
-) {
-    *local_gamestate = client.receive_gamestate(network);
-    client.send_input(network, local_input_1);
 }
