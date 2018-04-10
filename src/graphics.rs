@@ -2,27 +2,29 @@ use fps;
 use lcd;
 use lcd::Framebuffer;
 
-pub fn draw_rectangle(x: u16, y: u16, width: u16, height: u16) {
-    // TODO: implement
-    let _ = x;
-    let _ = y;
-    let _ = width;
-    let _ = height;
+pub fn draw_rectangle(
+    buffer: &mut lcd::FramebufferL8,
+    x_left: u16,
+    x_right: u16,
+    y_top: u16,
+    y_bottom: u16,
+    color: lcd::Color,
+) {
+    for y in y_top..=y_bottom {
+        for x in x_left..=x_right {
+            buffer.set_pixel(x as usize, y as usize, color);
+        }
+    }
 }
 
-pub fn draw_circle(x: u16, y: u16, radius: u16) {
-    // TODO: implement
-    let _ = x;
-    let _ = y;
-    let _ = radius;
-}
-
-pub fn draw_line(start_x: u16, start_y: u16, end_x: u16, end_y: u16) {
-    // TODO: implement
-    let _ = start_x;
-    let _ = start_y;
-    let _ = end_x;
-    let _ = end_y;
+pub fn draw_circle(buffer: &mut lcd::FramebufferL8, x_pos_centre: u16, y_pos_centre: u16, radius: u16) {
+    for y in y_pos_centre-radius..=y_pos_centre+radius {
+        for x in x_pos_centre-radius..=x_pos_centre+radius {
+            if (x-x_pos_centre) * (x-x_pos_centre) + (y-y_pos_centre) * (y-y_pos_centre) <= radius * radius {
+                buffer.set_pixel(x as usize, y as usize, color);
+            }
+        }
+    }
 }
 
 pub fn draw_fps(layer1: &mut lcd::FramebufferL8, fps: &fps::FpsCounter) {
