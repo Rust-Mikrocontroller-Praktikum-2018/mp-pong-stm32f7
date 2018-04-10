@@ -6,6 +6,7 @@ use lcd::Framebuffer;
 use lcd::FramebufferL8;
 
 use graphics;
+use packets;
 
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;
@@ -71,8 +72,6 @@ impl Racket {
 
         &self,
         buffer: &mut lcd::FramebufferL8,
-        x_pos_centre: u16,
-
         y_top_erase: u16,
         y_bottom_erase: u16,
         y_top_draw: u16,
@@ -81,8 +80,8 @@ impl Racket {
         //erase old racket
         graphics::draw_rectangle(
             buffer,
-            x_pos_centre - RACKET_WIDTH,
-            x_pos_centre + RACKET_WIDTH,
+            self.x_pos_centre - RACKET_WIDTH,
+            self.x_pos_centre + RACKET_WIDTH,
             y_top_erase,
             y_bottom_erase,
             BGCOLOR,
@@ -97,62 +96,55 @@ impl Racket {
             RACKET_COLOR,
         );
     }
-    //TODO Update racket from Server Gamestate
+    //TODO Update self from Server Gamestate
     /*pub fn update_racket_pos(&self, gamestate){
         
         //remember old position
         self.ypos_centre_old = self.ypos_centre;
         //TODO
-        //update racket position
+        //update self position
         self.ypos_centre =gamestate[1]}
 */
-    /*pub fn update_racket_pos(&self, ){
-    
-        
+    pub fn update_racket_pos(& mut self, framebuffer: &mut lcd::FramebufferL8, new_ypos_centre:u16){
+        //Remember old state
+        self.ypos_centre_old=self.ypos_centre;
+        //Copy Position from Gamestate to self
+        self.ypos_centre=new_ypos_centre;    
+        //draw Racket in new Position       
             //if racket moved down
-            if self.get_ypos_centre() > racket.get_ypos_centre_old() {
-                racket.move_racket(
+            if self.ypos_centre > self.ypos_centre_old {
+                self.draw_moved_racket(
                     framebuffer,
-                    racket.get_xpos_centre() - RACKET_WIDTH,
-                    racket.get_xpos_centre() + RACKET_WIDTH,
-                    racket.get_ypos_centre_old() - RACKET_HEIGHT,
+                    self.get_ypos_centre_old() - RACKET_HEIGHT,
                     min(
-                        racket.get_ypos_centre() - RACKET_HEIGHT - 1,
-                        racket.get_ypos_centre_old() + RACKET_HEIGHT,
+                        self.get_ypos_centre() - RACKET_HEIGHT - 1,
+                        self.get_ypos_centre_old() + RACKET_HEIGHT,
                     ),
                     max(
-                        racket.get_ypos_centre_old() + RACKET_HEIGHT,
-                        racket.get_ypos_centre() - RACKET_HEIGHT,
+                        self.get_ypos_centre_old() + RACKET_HEIGHT,
+                        self.get_ypos_centre() - RACKET_HEIGHT,
                     ),
-                    racket.get_ypos_centre() + RACKET_HEIGHT,
-                    BGCOLOR,
-                    RACKET_COLOR,
+                    self.get_ypos_centre() + RACKET_HEIGHT,
+                    
                 );
             }
             //if racket moved up
-            if racket.get_ypos_centre() < racket.get_ypos_centre_old() {
+            if self.get_ypos_centre() < self.get_ypos_centre_old() {
                 //TODO CREATE FN MOVE RACKET
-                racket.move_racket(
+                self.move_racket(
                     framebuffer,
-                    racket.get_xpos_centre() - RACKET_WIDTH,
-                    racket.get_xpos_centre() + RACKET_WIDTH,
                     max(
-                        racket.get_ypos_centre() + RACKET_HEIGHT + 1,
-                        racket.get_ypos_centre_old() - RACKET_HEIGHT,
+                        self.get_ypos_centre() + RACKET_HEIGHT + 1,
+                        self.get_ypos_centre_old() - RACKET_HEIGHT,
                     ),
-                    racket.get_ypos_centre_old() + RACKET_HEIGHT,
-                    racket.get_ypos_centre() - RACKET_HEIGHT,
+                    self.get_ypos_centre_old() + RACKET_HEIGHT,
+                    self.get_ypos_centre() - RACKET_HEIGHT,
                     min(
-                        racket.get_ypos_centre_old() - RACKET_HEIGHT,
-                        racket.get_ypos_centre() + RACKET_HEIGHT,
+                        self.get_ypos_centre_old() - RACKET_HEIGHT,
+                        self.get_ypos_centre() + RACKET_HEIGHT,
                     ),
-                    BGCOLOR,
-                    RACKET_COLOR,
                 );
             }
-            //remember old racket points (y)
-            let mut ypos_centre_old = racket.get_ypos_centre();
-            racket.set_ypos_centre_old(ypos_centre_old);
         
-    }*/
+    }
 }

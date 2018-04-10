@@ -100,3 +100,12 @@ pub fn quad(x: usize, y: usize, size: usize, color: &u8, layer1: &mut lcd::Frame
         }
     }
 }
+fn update_graphics(buffer: &mut lcd::FramebufferL8, gamestate: &GamestatePacket,rackets:&mut [racket::Racket;2]) {
+    // TODO: implement
+    // send gamestate to racket to let racket move
+    for id in 0..2{
+        rackets[id].update_racket_position(gamestate.get_racket_ypos(id));
+    }
+    //TODO same for ball
+    
+}

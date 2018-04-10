@@ -314,7 +314,7 @@ fn game_loop(
     }
 
     // move rackets and ball
-    update_graphics(&local_gamestate);
+    update_graphics(framebuffer, local_gamestate, rackets);
 
     graphics::draw_fps(framebuffer, fps);
 }
@@ -325,7 +325,7 @@ fn handle_local_calculations(
     local_input_2: &InputPacket,
 ) {
     let inputs = [*local_input_1, *local_input_2];
-    calcute_physics(local_gamestate, inputs);
+    physics::calcute_physics(local_gamestate, inputs);
 }
 
 fn handle_network_server(
@@ -335,7 +335,7 @@ fn handle_network_server(
     local_input_1: &InputPacket,
 ) {
     let inputs = [*local_input_1, server.receive_input(network)];
-    calcute_physics(local_gamestate, inputs);
+    physics:calcute_physics(local_gamestate, inputs);
     server.send_gamestate(network, local_gamestate);
 }
 
@@ -350,15 +350,6 @@ fn handle_network_client(
     client.send_input(network, local_input_1);
 }
 
-fn update_graphics(gamestate: &GamestatePacket) {
-    // TODO: implement
-    // TODO: move into module
-    let _ = gamestate;
-}
 
-fn calcute_physics(gamestate: &GamestatePacket, inputs: [InputPacket; 2]) {
-    // TODO: implement
-    // TODO: move into module
-    let _ = gamestate;
-    let _ = inputs;
-}
+
+
