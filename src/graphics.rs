@@ -17,7 +17,7 @@ pub fn draw_rectangle(
     }
 }
 
-pub fn draw_circle(buffer: &mut lcd::FramebufferL8, x_pos_centre: u16, y_pos_centre: u16, radius: u16) {
+pub fn draw_circle(buffer: &mut lcd::FramebufferL8, x_pos_centre: u16, y_pos_centre: u16, radius: u16, color:lcd::Color) {
     for y in y_pos_centre-radius..=y_pos_centre+radius {
         for x in x_pos_centre-radius..=x_pos_centre+radius {
             if (x-x_pos_centre) * (x-x_pos_centre) + (y-y_pos_centre) * (y-y_pos_centre) <= radius * radius {

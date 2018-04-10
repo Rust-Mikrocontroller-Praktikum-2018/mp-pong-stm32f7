@@ -24,15 +24,21 @@ pub struct InputPacket {
 impl GamestatePacket {
     pub fn new() -> GamestatePacket {
         GamestatePacket {
-            rackets: [RacketPacket { x: 0, y: 100 }, RacketPacket { x: 400, y: 100 }],
+            rackets: [RacketPacket { x: 0, y: 135 }, RacketPacket { x: 479, y: 135 }],
             ball: BallPacket {
                 x: 239,
                 y: 135,
-                x_vel: rand::random::<u8>()%20,
-                y_vel: rand::random::<u8>()%20,
+                x_vel: 10,
+                y_vel: 20,
             },
             score: [0, 0],
         }
+    }
+    pub fn get_racket_ypos(&self,id:usize)->i16{
+        self.rackets[id].y
+    }
+    pub fn set_racket_ypos(&mut self, id:usize, new_racket_ypos:i16){
+        self.rackets[id].y=new_racket_ypos;
     }
 }
 

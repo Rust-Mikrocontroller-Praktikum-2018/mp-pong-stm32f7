@@ -1,3 +1,4 @@
+use stm32f7::{touch, i2c};
 struct Input {
     top_left: bool,
     bottom_left: bool,
@@ -20,47 +21,42 @@ impl Input {
         self.bottom_right
     }
 
-    pub fn evaluate_touch(i2c_3: &mut i2c::I2C,racket_1_ypos_centre:u16, racket_2_ypos_centre:u16) {
-        
+    pub fn evaluate_touch(
+        &mut self,
+        i2c_3: &mut i2c::I2C,
+        racket_1_ypos_centre: u16,
+        racket_2_ypos_centre: u16,
+    ) {
         //reset
-        top_left=false;
-        bottom_left=false;
-        top_right=false;
-        bottom_right=false;       
-        
+        self.top_left = false;
+        self.bottom_left = false;
+        self.top_right = false;
+        self.bottom_right = false;
+
         // poll for new touch data
         for touch in &touch::touches(i2c_3).unwrap() {
-
-            
-        //Player_1
-        if touch.x <= 199 {
-                
+            //Player_1
+            if touch.x <= 199 {
                 //if touch above current racket_position
-                if touch.y < racket_1_ypos_centre:u16 {
-                    self.top_left=true;
-                
+                if touch.y < racket_1_ypos_centre {
+                    self.top_left = true;
                 }
                 //if touch below current racket position
-                 else if touch.y > racket_1_ypos_centre:u16{
-                    self.bottom_left=true;
+                else if touch.y > racket_1_ypos_centre {
+                    self.bottom_left = true;
                 }
-                
             }
             // Player_2
             if touch.x >= 280 {
-
                 //if touch above current racket_position
-                if touch.y < racket_2_ypos_centre:u16 {
-                    self.top_right=true;
-                
+                if touch.y < racket_2_ypos_centre {
+                    self.top_right = true;
                 }
                 //if touch below current racket position
-                 else if touch.y > racket_2_ypos_centre:u16 {
-                    self.bottom_right=true;
+                else if touch.y > racket_2_ypos_centre {
+                    self.bottom_right = true;
                 }
             }
-
-            
         }
     }
 }

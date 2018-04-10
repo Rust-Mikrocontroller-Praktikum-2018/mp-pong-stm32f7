@@ -17,7 +17,12 @@ mod graphics;
 mod lcd; // use custom LCD implementation
 mod network;
 mod racket;
+mod input;
+mod physics;
 
+
+use input::Input;
+use network::GamestatePacket;
 use core::cmp::max;
 use core::cmp::min;
 use core::ptr;
@@ -200,6 +205,10 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
         racket.draw_racket(framebuffer);
     }
 
+    let mut current_input=input::Input{top_left: false,
+    bottom_left: false,
+    top_right:false,
+    bottom_right:false};
 
     // setup local "network"
     let is_server = true; // Server is player 1
@@ -230,6 +239,7 @@ fn run(framebuffer: &mut FramebufferL8, i2c_3: &mut i2c::I2C, should_draw_now_pt
                 &mut client2,
                 &mut server,
                 &mut server_gamestate,
+                current_input,
                 is_server,
                 is_local,
             );
@@ -252,13 +262,13 @@ fn game_loop(
     client2: &mut Client,
     server: &mut Server,
     server_gamestate: &mut GamestatePacket,
-    input: &mut Input, 
+    current_input: &mut Input, 
     is_server: bool,
     is_local:bool,
 ) {
     if is_server {
-        let inputs = server.receive_inputs();
-        calcute_physics(server_gamestate, inputs);
+        let inputs: [network::InputPacket; 2]= server.receive_inputs();
+        physics::calculate_physics(server_gamestate, inputs);
         server.send_gamestate(server_gamestate);
     }
     
@@ -267,11 +277,11 @@ fn game_loop(
     }
 
     let gamestate = client1.receive_gamestate();
-    input::input.evaluate_touch(rackets[0].get_ypos_centre(),rackets[1].get_ypos_centre());
-    send_input_to_server(is_server, is_local, client1, client2, input);
+    current_input.evaluate_touch(i2c_3, rackets[0].get_ypos_centre(),rackets[1].get_ypos_centre());
+    send_input_to_server(is_server, is_local, client1, client2, current_input);
 
     // move rackets and ball
-    update_graphics(gamestate);
+    //update_graphics(gamestate);
     graphics::draw_fps(framebuffer, fps);
 }
 
@@ -279,13 +289,13 @@ fn game_loop(
 
 fn send_input_to_server(is_server: bool, is_local: bool, client1: &mut Client, client2: &mut Client, input: &Input) {
     if is_server { // We are player 1
-        client1.send_input(InputPackage {
+        client1.send_input(network::InputPacket {
             up: input.is_up_pressed(),
             down: input.is_down_pressed()
         });
     }
     if is_local { // If we are local, we need to send the input for player 2 as well
-        client2.send_input(InputPackage {
+        client2.send_input(network::InputPacket {
             up: input.is_up_pressed2(),
             down: input.is_down_pressed2()
         });
