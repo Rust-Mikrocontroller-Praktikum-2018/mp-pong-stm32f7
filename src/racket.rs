@@ -1,11 +1,6 @@
-#![feature(const_fn)]
-
 use BGCOLOR;
 use lcd;
-use lcd::Framebuffer;
-use lcd::FramebufferL8;
 use graphics;
-use network;
 use core::cmp::min;
 use core::cmp::max;
 

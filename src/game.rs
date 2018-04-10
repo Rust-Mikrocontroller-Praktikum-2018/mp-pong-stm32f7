@@ -1,0 +1,7 @@
+pub enum GameState {
+    SPLASH,
+    CHOOSE_LOCAL_REMOTE,
+    CHOOSE_CLIENT_SERVER,
+    CONNECT_NETWORK,
+
+}

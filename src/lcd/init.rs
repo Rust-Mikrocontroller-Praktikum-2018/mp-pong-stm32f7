@@ -1,4 +1,4 @@
-use super::{FramebufferL8, LAYER_1_START, LAYER_1_START_2, Lcd};
+use super::{LAYER_1_START, LAYER_1_START_2, Lcd};
 use board::ltdc::L1clutwr;
 use board::ltdc::Ltdc;
 use board::rcc::Rcc;

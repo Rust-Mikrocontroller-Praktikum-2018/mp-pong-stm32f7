@@ -24,7 +24,6 @@ mod racket;
 
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
-use input::Input;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use network::Network;
@@ -280,7 +279,6 @@ fn main(hw: board::Hardware) -> ! {
                             &mut client,
                             &mut server,
                             &mut local_input_1,
-                            &mut local_input_2,
                             &mut server_gamestate,
                             is_server,
                             network.as_mut().unwrap(),
@@ -334,7 +332,6 @@ fn game_loop_network(
     client: &mut EthClient,
     server: &mut EthServer,
     local_input_1: &mut InputPacket,
-    local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
     is_server: bool,
     network: &mut Network,

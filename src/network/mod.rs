@@ -27,21 +27,6 @@ pub struct Network<'a> {
 }
 
 impl<'a> Network<'a> {
-    pub fn handle_ethernet_packets(&mut self) {
-        match self.ethernet_interface.poll(
-            &mut self.sockets,
-            Instant::from_millis(system_clock::ticks() as i64),
-        ) {
-            Err(::smoltcp::Error::Exhausted) => return,
-            Err(::smoltcp::Error::Unrecognized) => {}
-            Err(e) => hprintln!("Network error: {:?}", e),
-            Ok(socket_changed) => if socket_changed {
-                for mut socket in self.sockets.iter_mut() {
-                    poll_socket(&mut socket).expect("socket poll failed");
-                }
-            },
-        }
-    }
 
     pub fn get_udp_packet(&mut self) -> Result<Option<Vec<u8>>, smoltcp::Error> {
         match self.ethernet_interface.poll(
@@ -128,30 +113,6 @@ pub fn init(
         sockets: sockets,
         partner_ip_addr: partner_ip_addr,
     })
-}
-
-fn poll_socket(socket: &mut Socket) -> Result<(), smoltcp::Error> {
-    match socket {
-        &mut Socket::Udp(ref mut socket) => match socket.endpoint().port {
-            PORT => loop {
-                let reply;
-                match socket.recv() {
-                    Ok((data, remote_endpoint)) => {
-                        let mut data = Vec::from(data);
-                        let len = data.len() - 1;
-                        data[..len].reverse();
-                        reply = (data, remote_endpoint);
-                    }
-                    Err(smoltcp::Error::Exhausted) => break,
-                    Err(err) => return Err(err),
-                }
-                socket.send_slice(&reply.0, reply.1);
-            },
-            _ => {}
-        },
-        _ => {}
-    }
-    Ok(())
 }
 
 pub trait Client {

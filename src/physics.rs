@@ -1,5 +1,4 @@
 use network;
-use racket;
 use racket::RACKET_HEIGHT;
 
 const RACKET_SPEED:i8=5;
