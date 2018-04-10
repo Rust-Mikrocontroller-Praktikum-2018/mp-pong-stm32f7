@@ -159,6 +159,12 @@ fn main(hw: board::Hardware) -> ! {
     }
     lcd.swap_buffers();
 
+    for i in 0..255 {
+        lcd.clut[i] = (0, i as u8, 0);
+    }
+    lcd.clut[255] = (255, 0, 0);
+    lcd.update_clut();
+
     // set up font renderer
     let font_renderer = FontRenderer::new(TTF, 40.0);
     let x_pos = &mut 30;

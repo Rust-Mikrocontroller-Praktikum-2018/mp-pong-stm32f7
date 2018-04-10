@@ -8,6 +8,7 @@ use board::ltdc;
 use board::ltdc::Ltdc;
 use core::ptr;
 use embedded::interfaces::gpio::OutputPin;
+use board::ltdc::L1clutwr;
 
 #[macro_use]
 mod init;
@@ -30,6 +31,7 @@ pub struct Lcd {
     write_to_buffer_2: bool,
     pub framebuffer_addr: u32,
     pub backbuffer_addr: u32,
+    pub clut: [(u8, u8, u8); 256],
 }
 
 impl Lcd {
@@ -60,6 +62,22 @@ impl Lcd {
         let mut clr_flags = ltdc::Icr::default();
         clr_flags.set_clif(true);
         self.controller.icr.write(clr_flags);
+    }
+
+    // reads the rgb colors defined in the lcd.clut and sets them
+    pub fn update_clut(&mut self) {
+        // define CLUT for layer 1
+        for c in 0..=255 {
+            let mut clut = L1clutwr::default();
+            clut.set_red(self.clut[c].0);
+            clut.set_green(self.clut[c].1);
+            clut.set_blue(self.clut[c].2);
+            clut.set_clutadd(c as u8);
+            self.controller.l1clutwr.write(clut);
+        }
+        self.controller.l1cr.update(|r| {
+            r.set_cluten(true); // enable CLUT for layer 1
+        });
     }
 }
 

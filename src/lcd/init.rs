@@ -1,5 +1,4 @@
 use super::{LAYER_1_START, LAYER_1_START_2, Lcd};
-use board::ltdc::L1clutwr;
 use board::ltdc::Ltdc;
 use board::rcc::Rcc;
 use embedded::interfaces::gpio::{Gpio, OutputPin};
@@ -121,23 +120,10 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     // configure frame buffer line number
     ltdc.l1cfblnr.update(|r| r.set_cfblnbr(HEIGHT)); // line_number
 
-    // define CLUT for layer 1
-    /*for c in 0..=255 {
-        let mut clut = L1clutwr::default();
-        clut.set_red(if c > 100 {255} else {0});
-        clut.set_blue(if c > 200 {0} else {255});
-        clut.set_green(c);
-        // clut.set_red(c);
-        // clut.set_green(c);
-        // clut.set_blue(c);
-        clut.set_clutadd(c);
 
-        ltdc.l1clutwr.write(clut);
-    }*/
 
     ltdc.l1cr.update(|r| {
         r.set_len(true); // enable layer 1
-                         //r.set_cluten(true); // enable CLUT for layer 1
     });
 
     // reload shadow registers
@@ -157,6 +143,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
         write_to_buffer_2: false,
         framebuffer_addr: LAYER_1_START as u32,
         backbuffer_addr: LAYER_1_START_2 as u32,
+        clut: [(0,0,0); 256]
     }
 }
 
