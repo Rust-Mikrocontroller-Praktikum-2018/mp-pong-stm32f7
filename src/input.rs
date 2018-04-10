@@ -2,7 +2,6 @@ use i2c;
 use touch;
 
 pub struct Input {
-
     top_left: bool,
     bottom_left: bool,
     top_right: bool,
@@ -39,30 +38,29 @@ pub fn evaluate_touch(
 ) -> Input {
     let mut input = Input::new();
     // poll for new touch data
-        for touch in &touch::touches(i2c_3).unwrap() {
-            //Player_1
-            if touch.x <= 199 {
-                //if touch above current racket_position
-                if touch.y < racket_1_ypos_centre {
-                    input.top_left = true;
-                }
-                //if touch below current racket position
-                else if touch.y > racket_1_ypos_centre {
-                    input.bottom_left = true;
-                }
+    for touch in &touch::touches(i2c_3).unwrap() {
+        //Player_1
+        if touch.x <= 199 {
+            //if touch above current racket_position
+            if touch.y < racket_1_ypos_centre {
+                input.top_left = true;
             }
-            // Player_2
-            if touch.x >= 280 {
-                //if touch above current racket_position
-                if touch.y < racket_2_ypos_centre {
-                input.top_right = true;
-                }
-                //if touch below current racket position
-                else if touch.y > racket_2_ypos_centre {
-                    input.bottom_right = true;
-                }
-
+            //if touch below current racket position
+            else if touch.y > racket_1_ypos_centre {
+                input.bottom_left = true;
             }
         }
+        // Player_2
+        if touch.x >= 280 {
+            //if touch above current racket_position
+            if touch.y < racket_2_ypos_centre {
+                input.top_right = true;
+            }
+            //if touch below current racket position
+            else if touch.y > racket_2_ypos_centre {
+                input.bottom_right = true;
+            }
+        }
+    }
     input
 }

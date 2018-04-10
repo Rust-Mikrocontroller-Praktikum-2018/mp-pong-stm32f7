@@ -19,8 +19,8 @@ mod graphics;
 mod input;
 mod lcd; // use custom LCD implementation
 mod network;
-mod racket;
 mod physics;
+mod racket;
 
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
@@ -229,7 +229,7 @@ fn run(
 
     // setup local "network"
     let is_server = false; // Server is player 1
-    let is_local = false;
+    let is_local = true;
 
     let mut client = network::EthClient::new();
     let mut server = network::EthServer::new();
@@ -287,7 +287,6 @@ fn game_loop(
     is_local: bool,
     network: &mut Network,
 ) {
-
     if is_local {
         handle_local_calculations(local_gamestate, local_input_1, local_input_2);
     } else if is_server {
@@ -295,7 +294,6 @@ fn game_loop(
     } else {
         handle_network_client(client, network, local_gamestate, local_input_1);
     }
-
 
     // handle input
     let input = input::evaluate_touch(
@@ -309,7 +307,7 @@ fn game_loop(
         local_input_2.up = input.is_up_pressed2();
         local_input_2.down = input.is_down_pressed2();
     } else {
-        local_input_1.up = input.is_up_pressed()|| input.is_up_pressed2();
+        local_input_1.up = input.is_up_pressed() || input.is_up_pressed2();
         local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
     }
 
@@ -325,7 +323,7 @@ fn handle_local_calculations(
     local_input_2: &InputPacket,
 ) {
     let inputs = [*local_input_1, *local_input_2];
-    calcute_physics(local_gamestate, inputs);
+    physics::calculate_physics(local_gamestate, inputs);
 }
 
 fn handle_network_server(
@@ -335,16 +333,15 @@ fn handle_network_server(
     local_input_1: &InputPacket,
 ) {
     let inputs = [*local_input_1, server.receive_input(network)];
-    calcute_physics(local_gamestate, inputs);
+    physics::calculate_physics(local_gamestate, inputs);
     server.send_gamestate(network, local_gamestate);
 }
-
 
 fn handle_network_client(
     client: &mut EthClient,
     network: &mut Network,
     local_gamestate: &mut GamestatePacket,
-    local_input_1: &InputPacket
+    local_input_1: &InputPacket,
 ) {
     *local_gamestate = client.receive_gamestate(network);
     client.send_input(network, local_input_1);
@@ -354,11 +351,4 @@ fn update_graphics(gamestate: &GamestatePacket) {
     // TODO: implement
     // TODO: move into module
     let _ = gamestate;
-}
-
-fn calcute_physics(gamestate: &GamestatePacket, inputs: [InputPacket; 2]) {
-    // TODO: implement
-    // TODO: move into module
-    let _ = gamestate;
-    let _ = inputs;
 }
