@@ -31,11 +31,12 @@ use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::FontRenderer;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
+use stm32f7::lcd::Color;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
-const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
+const BGCOLOR: u8 = 22;
 
 const ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef]);
 const IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 198]);
@@ -144,7 +145,7 @@ fn main(hw: board::Hardware) -> ! {
 
     // set up LCD
     let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
-    lcd.set_background_color(lcd::Color {
+    lcd.set_background_color(Color {
         red: 0,
         green: 0,
         blue: 0,
@@ -181,7 +182,7 @@ fn main(hw: board::Hardware) -> ! {
             // TODO: no place for text D:
         }
         let alpha = (v * 255.0 + 0.5) as u8;
-        framebuffer.set_pixel_direct(*x_pos + x, *y_pos + y, alpha);
+        framebuffer.set_pixel(*x_pos + x, *y_pos + y, alpha);
     });
     lcd.swap_buffers();
     framebuffer.swap_buffers();

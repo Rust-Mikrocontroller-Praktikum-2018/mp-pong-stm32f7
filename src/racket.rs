@@ -7,7 +7,7 @@ use lcd;
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;
 pub const RACKET_HEIGHT: u16 = 30;
-const RACKET_COLOR: lcd::Color = lcd::Color::rgb(150, 150, 30);
+const RACKET_COLOR: u8 = 150;
 
 //Racket Positions
 pub struct Racket {
