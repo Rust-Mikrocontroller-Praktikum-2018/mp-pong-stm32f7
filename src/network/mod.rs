@@ -1,6 +1,6 @@
 use smoltcp;
 use smoltcp::iface::EthernetInterface;
-use smoltcp::socket::{Socket, SocketSet, TcpSocket, TcpSocketBuffer};
+use smoltcp::socket::{Socket, SocketSet};
 use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpAddress, IpEndpoint, Ipv4Address};
@@ -52,6 +52,7 @@ pub fn init(
     ethernet_addr: EthernetAddress,
     ip_addr: Ipv4Address,
 ) -> Option<Network<'static>> {
+
     // Ethernet init
     let ethernet_interface = ethernet::EthernetDevice::new(
         Default::default(),
@@ -73,9 +74,9 @@ pub fn init(
 
     let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 256]);
     let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 128]);
-    let mut example_udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
-    example_udp_socket.bind(endpoint).unwrap();
-    sockets.add(example_udp_socket);
+    let mut udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
+    udp_socket.bind(endpoint).unwrap();
+    sockets.add(udp_socket);
 
 
     Some(Network {
