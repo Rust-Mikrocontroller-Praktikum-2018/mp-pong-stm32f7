@@ -38,42 +38,28 @@ pub fn evaluate_touch(
     racket_2_ypos_centre: u16,
 ) -> Input {
     let mut input = Input::new();
-
-
-    pub fn evaluate_touch(
-        &mut self,
-        i2c_3: &mut i2c::I2C,
-        racket_1_ypos_centre: u16,
-        racket_2_ypos_centre: u16,
-    ) {
-        //reset
-        self.top_left = false;
-        self.bottom_left = false;
-        self.top_right = false;
-        self.bottom_right = false;
-
-        // poll for new touch data
+    // poll for new touch data
         for touch in &touch::touches(i2c_3).unwrap() {
             //Player_1
             if touch.x <= 199 {
                 //if touch above current racket_position
                 if touch.y < racket_1_ypos_centre {
-                    self.top_left = true;
+                    input.top_left = true;
                 }
                 //if touch below current racket position
                 else if touch.y > racket_1_ypos_centre {
-                    self.bottom_left = true;
+                    input.bottom_left = true;
                 }
             }
             // Player_2
             if touch.x >= 280 {
                 //if touch above current racket_position
                 if touch.y < racket_2_ypos_centre {
-                    self.top_right = true;
+                input.top_right = true;
                 }
                 //if touch below current racket position
                 else if touch.y > racket_2_ypos_centre {
-                    self.bottom_right = true;
+                    input.bottom_right = true;
                 }
 
             }
