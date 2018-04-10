@@ -162,11 +162,11 @@ pub trait Client {
 }
 
 pub trait Server {
-    fn receive_inputs(&mut self, network: &mut Network) -> [InputPacket; 2];
+    fn receive_input(&mut self, network: &mut Network) -> InputPacket;
     fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket);
 }
 
-pub struct LocalClient {
+/*pub struct LocalClient {
     gamestate: GamestatePacket,
     input: InputPacket,
 }
@@ -220,19 +220,19 @@ pub fn handle_local(
     client1.gamestate = server.gamestate;
     client2.gamestate = server.gamestate;
     server.player_inputs = [client1.input, client2.input];
-}
+}*/
 
 pub struct EthServer {
-    player_inputs: [InputPacket; 2],
+    player_input: InputPacket,
 }
 
 impl Server for EthServer {
-    fn receive_inputs(&mut self, network: &mut Network) -> [InputPacket; 2] {
+    fn receive_input(&mut self, network: &mut Network) -> InputPacket {
         let result = network.get_udp_packet();
         match result {
             Ok(value) => match value {
                 Some(data) => {
-                    self.player_inputs[0] = InputPacket::deserialize(&data);
+                    self.player_input = InputPacket::deserialize(&data);
                 }
                 None => {}
             },
@@ -241,7 +241,7 @@ impl Server for EthServer {
                 hprintln!("Network error: {:?}", e);
             }
         }
-        self.player_inputs
+        self.player_input
     }
     fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket) {
         network.send_udp_packet(&gamestate.serialize());
@@ -251,7 +251,7 @@ impl Server for EthServer {
 impl EthServer {
     pub fn new() -> EthServer {
         EthServer {
-            player_inputs: [InputPacket::new(), InputPacket::new()],
+            player_input: InputPacket::new(),
         }
     }
 }

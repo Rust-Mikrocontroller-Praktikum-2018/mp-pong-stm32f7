@@ -28,7 +28,7 @@ use input::Input;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use network::Network;
-use network::{Client, GamestatePacket, InputPacket, LocalClient, LocalServer, Server};
+use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 
@@ -229,12 +229,14 @@ fn run(
 
     // setup local "network"
     let is_server = true; // Server is player 1
-    let is_local = true;
+    let is_local = false;
 
-    let mut client1 = network::LocalClient::new();
-    let mut client2 = network::LocalClient::new();
-    let mut server = network::LocalServer::new();
+    let mut client = network::EthClient::new();
+    let mut server = network::EthServer::new();
     let mut server_gamestate = network::GamestatePacket::new();
+
+    let mut local_input_1 = network::InputPacket::new();
+    let mut local_input_2 = network::InputPacket::new();
 
     loop {
         let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -252,9 +254,10 @@ fn run(
                 i2c_3,
                 &fps,
                 &mut rackets,
-                &mut client1,
-                &mut client2,
+                &mut client,
                 &mut server,
+                &mut local_input_1,
+                &mut local_input_2,
                 &mut server_gamestate,
                 is_server,
                 is_local,
@@ -275,40 +278,77 @@ fn game_loop(
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
-    client1: &mut LocalClient,
-    client2: &mut LocalClient,
-    server: &mut LocalServer,
-    server_gamestate: &mut GamestatePacket,
+    client: &mut EthClient,
+    server: &mut EthServer,
+    local_input_1: &mut InputPacket,
+    local_input_2: &mut InputPacket,
+    local_gamestate: &mut GamestatePacket,
     is_server: bool,
     is_local: bool,
     network: &mut Network,
 ) {
-    network.handle_ethernet_packets();
-    if is_server {
-        let inputs = server.receive_inputs(network);
-        calcute_physics(server_gamestate, inputs);
-        server.send_gamestate(network, server_gamestate);
-    }
-
     if is_local {
-        network::handle_local(client1, client2, server);
+        handle_local_calculations(local_gamestate, local_input_1, local_input_2);
+    } else if is_server {
+        handle_network_server(server, network, local_gamestate, local_input_1);
+    } else {
+        handle_network_client(client, network, local_gamestate, local_input_1);
     }
 
-    let gamestate = client1.receive_gamestate(network);
+    // handle input
     let input = input::evaluate_touch(
         i2c_3,
         rackets[0].get_ypos_centre(),
         rackets[1].get_ypos_centre(),
     );
-    send_input_to_server(network, is_server, is_local, client1, client2, &input);
+    if is_local {
+        local_input_1.up = input.is_up_pressed();
+        local_input_1.down = input.is_down_pressed();
+        local_input_2.up = input.is_up_pressed2();
+        local_input_2.down = input.is_down_pressed2();
+    } else {
+        local_input_1.up = input.is_up_pressed()|| input.is_up_pressed2();
+        local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
+    }
+
 
     // move rackets and ball
-    update_graphics(&gamestate);
+    update_graphics(&local_gamestate);
     graphics::draw_fps(framebuffer, fps);
 }
 
+fn handle_local_calculations(
+    local_gamestate: &mut GamestatePacket,
+    local_input_1: &InputPacket,
+    local_input_2: &InputPacket,
+) {
+    let inputs = [*local_input_1, *local_input_2];
+    calcute_physics(local_gamestate, inputs);
+}
+
+fn handle_network_server(
+    server: &mut EthServer,
+    network: &mut Network,
+    local_gamestate: &mut GamestatePacket,
+    local_input_1: &InputPacket,
+) {
+    let inputs = [*local_input_1, server.receive_input(network)];
+    calcute_physics(local_gamestate, inputs);
+    server.send_gamestate(network, local_gamestate);
+}
+
+fn handle_network_client(
+    client: &mut EthClient,
+    network: &mut Network,
+    local_gamestate: &mut GamestatePacket,
+    local_input_1: &InputPacket
+) {
+    *local_gamestate = client.receive_gamestate(network);
+    client.send_input(network, local_input_1);
+}
+
 fn send_input_to_server(
-    network: &mut Network, 
+    network: &mut Network,
     is_server: bool,
     is_local: bool,
     client1: &mut Client,
@@ -317,17 +357,23 @@ fn send_input_to_server(
 ) {
     if is_server {
         // We are player 1
-        client1.send_input(network, &InputPacket {
-            up: input.is_up_pressed(),
-            down: input.is_down_pressed(),
-        });
+        client1.send_input(
+            network,
+            &InputPacket {
+                up: input.is_up_pressed(),
+                down: input.is_down_pressed(),
+            },
+        );
     }
     if is_local {
         // If we are local, we need to send the input for player 2 as well
-        client2.send_input(network, &InputPacket {
-            up: input.is_up_pressed2(),
-            down: input.is_down_pressed2(),
-        });
+        client2.send_input(
+            network,
+            &InputPacket {
+                up: input.is_up_pressed2(),
+                down: input.is_down_pressed2(),
+            },
+        );
     }
 }
 
