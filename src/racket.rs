@@ -23,7 +23,6 @@ impl Racket {
     //Create new Racket
 
     pub fn new(player_id: u8) -> Racket {
-
         if player_id == 0 {
             Racket {
                 xpos_centre: RACKET_WIDTH,
@@ -69,7 +68,6 @@ impl Racket {
     }
 
     pub fn draw_moved_racket(
-
         &self,
         buffer: &mut lcd::FramebufferL8,
         y_top_erase: u16,

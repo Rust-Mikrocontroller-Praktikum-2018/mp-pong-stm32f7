@@ -1,6 +1,5 @@
 use alloc::Vec;
 
-
 #[derive(Debug, Copy, Clone)]
 pub struct GamestatePacket {
     pub rackets: [RacketPacket; 2],
@@ -41,12 +40,12 @@ impl GamestatePacket {
             score: [0, 0],
         }
     }
-    
-    pub fn get_racket_ypos(&self,id:usize)->i16{
+
+    pub fn get_racket_ypos(&self, id: usize) -> i16 {
         self.rackets[id].y
     }
-    pub fn set_racket_ypos(&mut self, id:usize, new_racket_ypos:i16){
-        self.rackets[id].y=new_racket_ypos;
+    pub fn set_racket_ypos(&mut self, id: usize, new_racket_ypos: i16) {
+        self.rackets[id].y = new_racket_ypos;
     }
 }
 
@@ -57,14 +56,18 @@ impl InputPacket {
             down: false,
         }
     }
-        pub fn says_move_up(& self)->i8{
-        if self.up!=self.down{
-            if self.up{-1}
-            else {1}
-        }else{0}
+    pub fn says_move_up(&self) -> i8 {
+        if self.up != self.down {
+            if self.up {
+                -1
+            } else {
+                1
+            }
+        } else {
+            0
+        }
     }
 }
-
 
 pub trait Serializable {
     fn serialize(&self) -> Vec<u8>;
@@ -85,22 +88,19 @@ impl Serializable for GamestatePacket {
 
     fn deserialize(input: &[u8]) -> GamestatePacket {
         let mut index = 0;
-        let racket1 = RacketPacket::deserialize(&input[index..index+RacketPacket::len()]);
+        let racket1 = RacketPacket::deserialize(&input[index..index + RacketPacket::len()]);
         index += RacketPacket::len();
-        let racket2 = RacketPacket::deserialize(&input[index..index+RacketPacket::len()]);
+        let racket2 = RacketPacket::deserialize(&input[index..index + RacketPacket::len()]);
         index += RacketPacket::len();
-        let ball = BallPacket::deserialize(&input[index..index+BallPacket::len()]);
-        index+= BallPacket::len();
+        let ball = BallPacket::deserialize(&input[index..index + BallPacket::len()]);
+        index += BallPacket::len();
         let score_player1 = input[index];
-        let score_player2 = input[index+1];
+        let score_player2 = input[index + 1];
 
         GamestatePacket {
             rackets: [racket1, racket2],
             ball,
-            score: [
-                score_player1,
-                score_player2,
-            ],
+            score: [score_player1, score_player2],
         }
     }
 
@@ -181,7 +181,6 @@ impl Serializable for InputPacket {
         1
     }
 }
-
 
 fn upper_byte(input: i16) -> u8 {
     ((input >> 8) & 0xff) as u8
