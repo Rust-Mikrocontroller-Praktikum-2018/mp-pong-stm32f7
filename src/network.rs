@@ -24,12 +24,12 @@ pub struct InputPacket {
 impl GamestatePacket {
     pub fn new() -> GamestatePacket {
         GamestatePacket {
-            rackets: [Racket { x: 0, y: 100 }, Racket { x: 400, y: 100 }],
-            ball: Ball {
-                x: 200,
-                y: 100,
-                x_vel: 1,
-                y_vel: 1,
+            rackets: [RacketPacket { x: 0, y: 100 }, RacketPacket { x: 400, y: 100 }],
+            ball: BallPacket {
+                x: 239,
+                y: 135,
+                x_vel: rand::random::<u8>()%20,
+                y_vel: rand::random::<u8>()%20,
             },
             score: [0, 0],
         }
@@ -42,6 +42,12 @@ impl InputPacket {
             up: false,
             down: false,
         }
+    }
+    pub fn says_move_up(& self)->i8{
+        if self.up!=self.down{
+            if self.up{-1}
+            else {1}
+        }else{0}
     }
 }
 
