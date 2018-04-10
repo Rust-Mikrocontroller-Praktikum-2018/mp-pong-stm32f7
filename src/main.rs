@@ -29,17 +29,16 @@ use embedded::interfaces::gpio::Gpio;
 use game::GameState;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
-use network::Network;
-use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server};
+use lcd::TextWriter;
+use network::{EthServer, GamestatePacket, InputPacket, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
-use stm32f7::lcd::FontRenderer;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
-const BGCOLOR: u8 = 22;
+const BGCOLOR: u8 = 0;
 
 const CLIENT_ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x11, 0x22, 0x33, 0x44, 0x01]);
 const CLIENT_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 2]);
@@ -164,30 +163,21 @@ fn main(hw: board::Hardware) -> ! {
     }
     lcd.swap_buffers();
 
-    for i in 0..255 {
+    /*for i in 0..255 {
         lcd.clut[i] = (0, i as u8, 0);
     }
     lcd.clut[255] = (255, 0, 0);
-    lcd.update_clut();
+    lcd.update_clut();*/
 
     // set up font renderer
-    let font_renderer = FontRenderer::new(TTF, 40.0);
-    let x_pos = &mut 30;
-    let y_pos = &mut 100;
-    let font_height = font_renderer.font_height() as usize;
+    let mut loading_font = TextWriter::new(TTF, 40.0);
+    loading_font.write(
+        &mut framebuffer,
+        "YEA, thats cool. I never imagined something",
+    );
 
-    font_renderer.render("loading game...", |x, y, v| {
-        if *x_pos + x >= lcd::WIDTH {
-            *x_pos = 0;
-            *y_pos += font_height;
-        }
-        if *y_pos + font_height >= lcd::HEIGHT {
-            *y_pos = 0;
-            // TODO: no place for text D:
-        }
-        let alpha = (v * 255.0 + 0.5) as u8;
-        framebuffer.set_pixel(*x_pos + x, *y_pos + y, alpha);
-    });
+    let mut menu_font = TextWriter::new(TTF, 20.0);
+
     lcd.swap_buffers();
     framebuffer.swap_buffers();
 
@@ -207,7 +197,8 @@ fn main(hw: board::Hardware) -> ! {
         SERVER_IP_ADDR,
     ); // TODO: error handling
 
-    let mut gamestate = GameState::SPLASH;
+    let mut gamestate = GameState::Splash;
+    let mut previous_gamestate = GameState::Splash;
 
     interrupts::scope(
         nvic,
@@ -270,12 +261,20 @@ fn main(hw: board::Hardware) -> ! {
                         framebuffer.swap_buffers();
                     }
 
-                    gamestate = match (gamestate) {
-                        GameState::SPLASH => GameState::GAME_RUNNING_LOCAL,
-                        GameState::CHOOSE_LOCAL_REMOTE => {}
-                        GameState::CHOOSE_CLIENT_SERVER => GameState::CHOOSE_CLIENT_SERVER,
-                        GameState::CONNECT_NETWORK => GameState::CONNECT_NETWORK,
-                        GameState::GAME_RUNNING_LOCAL => {
+                    let just_entered_state = !(previous_gamestate == gamestate);
+                    previous_gamestate = gamestate.clone();
+
+                    gamestate = match gamestate {
+                        GameState::Splash => GameState::ChooseLocalOrNetwork,
+                        GameState::ChooseLocalOrNetwork => menu::choose_local_network(
+                            just_entered_state,
+                            &mut framebuffer,
+                            &mut menu_font,
+                            &mut i2c_3,
+                        ),
+                        GameState::ChooseClientOrServer => GameState::ChooseClientOrServer,
+                        GameState::ConnectToNetwork => GameState::ConnectToNetwork,
+                        GameState::GameRunningLocal => {
                             game::game_loop_local(
                                 &mut framebuffer,
                                 &mut i2c_3,
@@ -285,9 +284,9 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut local_input_2,
                                 &mut server_gamestate,
                             );
-                            GameState::GAME_RUNNING_LOCAL
+                            GameState::GameRunningLocal
                         }
-                        GameState::GAME_RUNNING_NETWORK => {
+                        GameState::GameRunningNetwork => {
                             game::game_loop_network(
                                 &mut framebuffer,
                                 &mut i2c_3,
@@ -300,7 +299,7 @@ fn main(hw: board::Hardware) -> ! {
                                 is_server,
                                 network.as_mut().unwrap(),
                             );
-                            GameState::GAME_RUNNING_NETWORK
+                            GameState::GameRunningNetwork
                         }
                     };
 

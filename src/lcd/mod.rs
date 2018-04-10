@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 pub use self::init::init;
+pub use self::text::TextWriter;
 
 use alloc::Vec;
 use board::ltdc;
@@ -12,6 +13,7 @@ use stm32f7::lcd::Color;
 
 #[macro_use]
 mod init;
+mod text;
 
 pub const HEIGHT: usize = 272;
 pub const WIDTH: usize = 480;
