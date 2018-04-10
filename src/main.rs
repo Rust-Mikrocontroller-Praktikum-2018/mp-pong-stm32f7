@@ -31,6 +31,7 @@ use network::Network;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
+use stm32f7::lcd::FontRenderer;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -40,6 +41,8 @@ const BGCOLOR: lcd::Color = lcd::Color::rgb(0, 0, 0);
 const ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x08, 0xdc, 0xab, 0xcd, 0xef]);
 const IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 198]);
 const PARTNER_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 1]);
+
+static TTF: &[u8] = include_bytes!("../res/RobotoMono-Bold.ttf");
 
 #[no_mangle]
 pub unsafe extern "C" fn reset() -> ! {
@@ -140,11 +143,7 @@ fn main(hw: board::Hardware) -> ! {
     // init sdram (for display)
     sdram::init(rcc, fmc, &mut gpio);
 
-    // init touch screen
-    i2c::init_pins_and_clocks(rcc, &mut gpio);
-    let mut i2c_3 = i2c::init(i2c_3);
-    touch::check_family_id(&mut i2c_3).unwrap();
-
+    // set up LCD
     let mut lcd = lcd::init(ltdc, rcc, &mut gpio);
     lcd.set_background_color(lcd::Color {
         red: 0,
@@ -156,11 +155,38 @@ fn main(hw: board::Hardware) -> ! {
     framebuffer.init();
     lcd.framebuffer_addr = framebuffer.get_framebuffer_addr() as u32;
     lcd.backbuffer_addr = framebuffer.get_backbuffer_addr() as u32;
-
     if !USE_DOUBLE_BUFFER {
         lcd.swap_buffers();
     }
     lcd.swap_buffers();
+
+    // set up font renderer
+    let font_renderer = FontRenderer::new(TTF, 40.0);
+    let x_pos = &mut 30;
+    let y_pos = &mut 100;
+    let font_height = font_renderer.font_height() as usize;
+
+    font_renderer.render("loading game...", |x, y, v| {
+            if *x_pos + x >= lcd::WIDTH {
+                *x_pos = 0;
+                *y_pos += font_height;
+            }
+            if *y_pos + font_height >= lcd::HEIGHT {
+                *y_pos = 0;
+                // TODO: no place for text D:
+            }
+            let alpha = (v * 255.0 + 0.5) as u8;
+            framebuffer.set_pixel_direct(*x_pos + x, *y_pos + y, alpha);
+    });
+    lcd.swap_buffers();
+    framebuffer.swap_buffers();
+
+
+    // init touch screen
+    i2c::init_pins_and_clocks(rcc, &mut gpio);
+    let mut i2c_3 = i2c::init(i2c_3);
+    touch::check_family_id(&mut i2c_3).unwrap();
+
 
     let mut network = network::init(
         rcc,
@@ -172,6 +198,7 @@ fn main(hw: board::Hardware) -> ! {
         IP_ADDR,
         PARTNER_IP_ADDR,
     ); // TODO: error handling
+
     interrupts::scope(
         nvic,
         |_| {},
@@ -211,8 +238,8 @@ fn main(hw: board::Hardware) -> ! {
             }
 
             // setup local "network"
-            let is_server = false; // Server is player 1
-            let is_local = true;
+            let is_server = true; // Server is player 1
+            let is_local = false;
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
@@ -220,6 +247,8 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();
+
+            framebuffer.clear();
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!

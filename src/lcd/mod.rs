@@ -13,8 +13,8 @@ use embedded::interfaces::gpio::OutputPin;
 mod init;
 mod color;
 
-const HEIGHT: usize = 272;
-const WIDTH: usize = 480;
+pub const HEIGHT: usize = 272;
+pub const WIDTH: usize = 480;
 
 const LAYER_1_OCTETS_PER_PIXEL: usize = 1;
 const LAYER_1_LENGTH: usize = HEIGHT * WIDTH * LAYER_1_OCTETS_PER_PIXEL;
