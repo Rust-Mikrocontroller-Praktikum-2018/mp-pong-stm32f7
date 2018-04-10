@@ -1,8 +1,8 @@
 use fps;
 use lcd;
 use lcd::Framebuffer;
-use racket;
 use network;
+use racket;
 
 pub fn draw_rectangle(
     buffer: &mut lcd::FramebufferL8,
@@ -49,19 +49,85 @@ fn draw_number(framebuffer: &mut lcd::FramebufferL8, x: usize, y: usize, number:
     if number == 0 {
         draw_seven_segment(framebuffer, x, y, true, true, true, false, true, true, true);
     } else if number == 1 {
-        draw_seven_segment(framebuffer, x, y, false, false, true, false, false, true, false);
+        draw_seven_segment(
+            framebuffer,
+            x,
+            y,
+            false,
+            false,
+            true,
+            false,
+            false,
+            true,
+            false,
+        );
     } else if number == 2 {
-        draw_seven_segment(framebuffer, x, y, true, false, true, true, true, false, true);
+        draw_seven_segment(
+            framebuffer,
+            x,
+            y,
+            true,
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+        );
     } else if number == 3 {
-        draw_seven_segment(framebuffer, x, y, true, false, true, true, false, true, true);
+        draw_seven_segment(
+            framebuffer,
+            x,
+            y,
+            true,
+            false,
+            true,
+            true,
+            false,
+            true,
+            true,
+        );
     } else if number == 4 {
-        draw_seven_segment(framebuffer, x, y, false, true, true, true, false, true, false);
+        draw_seven_segment(
+            framebuffer,
+            x,
+            y,
+            false,
+            true,
+            true,
+            true,
+            false,
+            true,
+            false,
+        );
     } else if number == 5 {
-        draw_seven_segment(framebuffer, x, y, true, true, false, true, false, true, true);
+        draw_seven_segment(
+            framebuffer,
+            x,
+            y,
+            true,
+            true,
+            false,
+            true,
+            false,
+            true,
+            true,
+        );
     } else if number == 6 {
         draw_seven_segment(framebuffer, x, y, true, true, false, true, true, true, true);
     } else if number == 7 {
-        draw_seven_segment(framebuffer, x, y, true, false, true, false, false, true, false);
+        draw_seven_segment(
+            framebuffer,
+            x,
+            y,
+            true,
+            false,
+            true,
+            false,
+            false,
+            true,
+            false,
+        );
     } else if number == 8 {
         draw_seven_segment(framebuffer, x, y, true, true, true, true, true, true, true);
     } else if number == 9 {
@@ -108,12 +174,15 @@ pub fn quad(x: usize, y: usize, size: usize, color: &u8, framebuffer: &mut lcd::
         }
     }
 }
-pub fn update_graphics(buffer: &mut lcd::FramebufferL8, gamestate: &network::GamestatePacket,rackets:&mut [racket::Racket;2]) {
+pub fn update_graphics(
+    buffer: &mut lcd::FramebufferL8,
+    gamestate: &network::GamestatePacket,
+    rackets: &mut [racket::Racket; 2],
+) {
     // TODO: implement
     // send gamestate to racket to let racket move
-    for id in 0..2{
-        rackets[id].update_racket_pos(buffer,gamestate.get_racket_ypos(id) as u16);
+    for id in 0..2 {
+        rackets[id].update_racket_pos(buffer, gamestate.get_racket_ypos(id) as u16);
     }
-    //TODO same for ball
-    
+    // TODO same for ball
 }

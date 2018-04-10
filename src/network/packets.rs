@@ -50,9 +50,7 @@ impl GamestatePacket {
 
 impl InputPacket {
     pub fn new() -> InputPacket {
-        InputPacket {
-            goal_y: 272/2
-        }
+        InputPacket { goal_y: 272 / 2 }
     }
 }
 

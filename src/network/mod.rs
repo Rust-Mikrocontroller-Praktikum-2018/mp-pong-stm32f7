@@ -27,7 +27,6 @@ pub struct Network<'a> {
 }
 
 impl<'a> Network<'a> {
-
     pub fn get_udp_packet(&mut self) -> Result<Option<Vec<u8>>, smoltcp::Error> {
         match self.ethernet_interface.poll(
             &mut self.sockets,

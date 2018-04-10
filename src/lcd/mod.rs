@@ -4,10 +4,10 @@ pub use self::init::init;
 
 use alloc::Vec;
 use board::ltdc;
+use board::ltdc::L1clutwr;
 use board::ltdc::Ltdc;
 use core::ptr;
 use embedded::interfaces::gpio::OutputPin;
-use board::ltdc::L1clutwr;
 use stm32f7::lcd::Color;
 
 #[macro_use]
@@ -140,7 +140,7 @@ impl Framebuffer for FramebufferL8 {
         unsafe {
             ptr::write_volatile(pixel_ptr, color);
         };
-   }
+    }
 
     fn swap_buffers(&mut self) {
         let src_start_ptr;

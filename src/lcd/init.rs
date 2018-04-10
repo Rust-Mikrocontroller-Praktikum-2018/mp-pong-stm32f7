@@ -120,8 +120,6 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
     // configure frame buffer line number
     ltdc.l1cfblnr.update(|r| r.set_cfblnbr(HEIGHT)); // line_number
 
-
-
     ltdc.l1cr.update(|r| {
         r.set_len(true); // enable layer 1
     });
@@ -143,7 +141,7 @@ pub fn init(ltdc: &'static mut Ltdc, rcc: &mut Rcc, gpio: &mut Gpio) -> Lcd {
         write_to_buffer_2: false,
         framebuffer_addr: LAYER_1_START as u32,
         backbuffer_addr: LAYER_1_START_2 as u32,
-        clut: [(0,0,0); 256]
+        clut: [(0, 0, 0); 256],
     }
 }
 

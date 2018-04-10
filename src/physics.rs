@@ -7,8 +7,8 @@ pub fn calculate_physics(
     inputs: [network::InputPacket; 2],
 ) {
     let racket_height = RACKET_HEIGHT as i16;
-    //Racket Positions
-    //for each player check whether to move up, down or not at all
+    // Racket Positions
+    // for each player check whether to move up, down or not at all
     for i in 0..2 {
         let mut racket_pos = server_gamestate.get_racket_ypos(i);
 
@@ -32,5 +32,5 @@ pub fn calculate_physics(
             server_gamestate.set_racket_ypos(i, racket_pos);
         }
     }
-    //TODO Ball Position
+    // TODO Ball Position
 }

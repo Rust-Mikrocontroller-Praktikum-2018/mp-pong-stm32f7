@@ -1,9 +1,9 @@
-use input;
-use graphics;
-use network::{InputPacket, EthClient, EthServer, Network, GamestatePacket, Client, Server};
-use physics;
-use lcd::FramebufferL8;
 use fps;
+use graphics;
+use input;
+use lcd::FramebufferL8;
+use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
+use physics;
 use racket;
 use stm32f7::i2c;
 

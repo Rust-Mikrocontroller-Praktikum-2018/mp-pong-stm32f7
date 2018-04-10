@@ -9,7 +9,7 @@ pub fn evaluate_touch_two_players(
 ) {
     // poll for new touch data
     for touch in &touch::touches(i2c_3).unwrap() {
-        //Player_1
+        // Player_1
         if touch.x <= 199 {
             local_input_1.goal_y = touch.y as i16;
         }

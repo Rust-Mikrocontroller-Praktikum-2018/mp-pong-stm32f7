@@ -15,25 +15,26 @@ extern crate alloc;
 extern crate smoltcp;
 
 mod fps;
+mod game;
 mod graphics;
 mod input;
 mod lcd; // use custom LCD implementation
+mod menu;
 mod network;
 mod physics;
 mod racket;
-mod game;
 
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
+use game::GameState;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use network::Network;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
+use stm32f7::lcd::Color;
 use stm32f7::lcd::FontRenderer;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
-use stm32f7::lcd::Color;
-use game::GameState;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -268,14 +269,14 @@ fn main(hw: board::Hardware) -> ! {
                     if USE_DOUBLE_BUFFER {
                         framebuffer.swap_buffers();
                     }
-                    
-                    gamestate = match(gamestate) {
-                        GameState::SPLASH => {GameState::GAME_RUNNING_LOCAL},
-                        GameState::CHOOSE_LOCAL_REMOTE => {GameState::CHOOSE_LOCAL_REMOTE},
-                        GameState::CHOOSE_CLIENT_SERVER => {GameState::CHOOSE_CLIENT_SERVER},
-                        GameState::CONNECT_NETWORK => {GameState::CONNECT_NETWORK},
+
+                    gamestate = match (gamestate) {
+                        GameState::SPLASH => GameState::GAME_RUNNING_LOCAL,
+                        GameState::CHOOSE_LOCAL_REMOTE => {}
+                        GameState::CHOOSE_CLIENT_SERVER => GameState::CHOOSE_CLIENT_SERVER,
+                        GameState::CONNECT_NETWORK => GameState::CONNECT_NETWORK,
                         GameState::GAME_RUNNING_LOCAL => {
-                           game::game_loop_local(
+                            game::game_loop_local(
                                 &mut framebuffer,
                                 &mut i2c_3,
                                 &fps,
@@ -285,7 +286,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut server_gamestate,
                             );
                             GameState::GAME_RUNNING_LOCAL
-                        },
+                        }
                         GameState::GAME_RUNNING_NETWORK => {
                             game::game_loop_network(
                                 &mut framebuffer,
@@ -300,7 +301,7 @@ fn main(hw: board::Hardware) -> ! {
                                 network.as_mut().unwrap(),
                             );
                             GameState::GAME_RUNNING_NETWORK
-                        },
+                        }
                     };
 
                     // end of frame
