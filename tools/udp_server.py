@@ -13,6 +13,6 @@ sock.bind(server_address)
 while True:
     data, address = sock.recvfrom(4096)
     print('received {} ({} bytes) from {}'.format(data, len(data), address))
-    if data:
-        sent = sock.sendto(data, address)
+#    if data:
+#        sent = sock.sendto(data, address)
 

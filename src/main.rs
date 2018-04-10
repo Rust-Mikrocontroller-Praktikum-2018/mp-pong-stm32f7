@@ -220,16 +220,16 @@ fn run(
     let mut fps = fps::init();
     fps.output_enabled = ENABLE_FPS_OUTPUT;
 
-    //Create Rackets
+    // Create Rackets
     let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
-    //Draw Start Position
+    // Draw Start Position
     for racket in rackets.iter_mut() {
         racket.draw_racket(framebuffer);
     }
 
     // setup local "network"
-    let is_server = true; // Server is player 1
-    let is_local = false;
+    let is_server = false; // Server is player 1
+    let is_local = true;
 
     let mut client = network::EthClient::new();
     let mut server = network::EthServer::new();
@@ -311,7 +311,6 @@ fn game_loop(
         local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
     }
 
-
     // move rackets and ball
     update_graphics(&local_gamestate);
     graphics::draw_fps(framebuffer, fps);
@@ -345,36 +344,6 @@ fn handle_network_client(
 ) {
     *local_gamestate = client.receive_gamestate(network);
     client.send_input(network, local_input_1);
-}
-
-fn send_input_to_server(
-    network: &mut Network,
-    is_server: bool,
-    is_local: bool,
-    client1: &mut Client,
-    client2: &mut Client,
-    input: &Input,
-) {
-    if is_server {
-        // We are player 1
-        client1.send_input(
-            network,
-            &InputPacket {
-                up: input.is_up_pressed(),
-                down: input.is_down_pressed(),
-            },
-        );
-    }
-    if is_local {
-        // If we are local, we need to send the input for player 2 as well
-        client2.send_input(
-            network,
-            &InputPacket {
-                up: input.is_up_pressed2(),
-                down: input.is_down_pressed2(),
-            },
-        );
-    }
 }
 
 fn update_graphics(gamestate: &GamestatePacket) {

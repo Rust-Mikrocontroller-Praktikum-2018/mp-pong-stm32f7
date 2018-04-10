@@ -28,7 +28,6 @@ pub struct Network<'a> {
 
 impl<'a> Network<'a> {
     pub fn handle_ethernet_packets(&mut self) {
-        // handle new ethernet packets
         match self.ethernet_interface.poll(
             &mut self.sockets,
             Instant::from_millis(system_clock::ticks() as i64),
@@ -82,12 +81,11 @@ impl<'a> Network<'a> {
     fn push_udp_packet(socket: &mut Socket, endpoint: IpEndpoint, data: &[u8]) {
         match socket {
             &mut Socket::Udp(ref mut socket) => {
-                socket.send_slice(data, endpoint); // TODO: Error handling
+                let _result = socket.send_slice(data, endpoint); // TODO: Error handling
             }
             _ => {}
         }
     }
-    // socket.send_slice(&reply.0, reply.1);
 }
 
 pub fn init(
@@ -166,62 +164,6 @@ pub trait Server {
     fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket);
 }
 
-/*pub struct LocalClient {
-    gamestate: GamestatePacket,
-    input: InputPacket,
-}
-
-impl LocalClient {
-    pub fn new() -> LocalClient {
-        LocalClient {
-            gamestate: GamestatePacket::new(),
-            input: InputPacket::new(),
-        }
-    }
-}
-
-impl Client for LocalClient {
-    fn send_input(&mut self, _network: &mut Network, input: &InputPacket) {
-        self.input = *input;
-    }
-    fn receive_gamestate(&mut self, _network: &mut Network) -> GamestatePacket {
-        self.gamestate
-    }
-}
-
-pub struct LocalServer {
-    gamestate: GamestatePacket,
-    player_inputs: [InputPacket; 2],
-}
-
-impl LocalServer {
-    pub fn new() -> LocalServer {
-        LocalServer {
-            gamestate: GamestatePacket::new(),
-            player_inputs: [InputPacket::new(), InputPacket::new()],
-        }
-    }
-}
-
-impl Server for LocalServer {
-    fn receive_inputs(&mut self, _network: &mut Network) -> [InputPacket; 2] {
-        self.player_inputs
-    }
-    fn send_gamestate(&mut self, _network: &mut Network, gamestate: &GamestatePacket) {
-        self.gamestate = *gamestate;
-    }
-}
-
-pub fn handle_local(
-    client1: &mut LocalClient,
-    client2: &mut LocalClient,
-    server: &mut LocalServer,
-) {
-    client1.gamestate = server.gamestate;
-    client2.gamestate = server.gamestate;
-    server.player_inputs = [client1.input, client2.input];
-}*/
-
 pub struct EthServer {
     player_input: InputPacket,
 }
@@ -233,6 +175,7 @@ impl Server for EthServer {
             Ok(value) => match value {
                 Some(data) => {
                     self.player_input = InputPacket::deserialize(&data);
+                    // hprintln!("input: {:?} {:?}", data, self.player_input);
                 }
                 None => {}
             },
@@ -270,6 +213,7 @@ impl Client for EthClient {
             Ok(value) => match value {
                 Some(data) => {
                     self.gamestate = GamestatePacket::deserialize(&data);
+                    // hprintln!("state: {:?} {:?}", data, self.gamestate);
                 }
                 None => {}
             },
