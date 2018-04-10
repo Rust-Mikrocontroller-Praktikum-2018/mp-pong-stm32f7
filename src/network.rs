@@ -1,19 +1,19 @@
 pub struct GamestatePacket {
-    rackets: [RacketPacket; 22],
+    rackets: [RacketPacket; 2],
     ball: BallPacket,
     score: [u8; 2],
 }
 
 struct RacketPacket {
-    x: s16, // center_x
-    y: s16, // center_y
+    x: i16, // center_x
+    y: i16, // center_y
 }
 
 struct BallPacket {
-    x: s16, // center_x
-    y: s16, // center_y
-    x_vel: s16,
-    y_vel: s16,
+    x: i16, // center_x
+    y: i16, // center_y
+    x_vel: i16,
+    y_vel: i16,
 }
 
 pub struct InputPacket {
