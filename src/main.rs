@@ -228,13 +228,6 @@ fn run(
         racket.draw_racket(framebuffer);
     }
 
-
-    let mut current_input=input::Input{top_left: false,
-    bottom_left: false,
-    top_right:false,
-    bottom_right:false};
-
-
     // setup local "network"
     let is_server = false; // Server is player 1
     let is_local = false;
@@ -267,7 +260,6 @@ fn run(
                 &mut local_input_1,
                 &mut local_input_2,
                 &mut server_gamestate,
-                current_input,
                 is_server,
                 is_local,
                 network,
@@ -287,15 +279,11 @@ fn game_loop(
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
-
-    
-    current_input: &mut Input,
     client: &mut EthClient,
     server: &mut EthServer,
     local_input_1: &mut InputPacket,
     local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
-
     is_server: bool,
     is_local: bool,
     network: &mut Network,
