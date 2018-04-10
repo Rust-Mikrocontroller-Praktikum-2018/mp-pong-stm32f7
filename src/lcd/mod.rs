@@ -173,7 +173,7 @@ impl Framebuffer for FramebufferL8 {
     fn clear(&mut self) {
         for i in 0..HEIGHT {
             for j in 0..WIDTH {
-                self.set_pixel(j, i, 22);
+                self.set_pixel(j, i, 0);
             }
         }
     }

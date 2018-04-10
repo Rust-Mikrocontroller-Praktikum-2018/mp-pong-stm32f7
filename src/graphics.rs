@@ -174,15 +174,22 @@ pub fn quad(x: usize, y: usize, size: usize, color: &u8, framebuffer: &mut lcd::
         }
     }
 }
+
+pub fn draw_initial(framebuffer: &mut lcd::FramebufferL8, rackets: &mut [racket::Racket; 2]) {
+    // Draw Start Position
+    for racket in rackets.iter_mut() {
+        racket.draw_racket(framebuffer);
+    }
+}
 pub fn update_graphics(
-    buffer: &mut lcd::FramebufferL8,
+    framebuffer: &mut lcd::FramebufferL8,
     gamestate: &network::GamestatePacket,
     rackets: &mut [racket::Racket; 2],
 ) {
     // TODO: implement
     // send gamestate to racket to let racket move
     for id in 0..2 {
-        rackets[id].update_racket_pos(buffer, gamestate.get_racket_ypos(id) as u16);
+        rackets[id].update_racket_pos(framebuffer, gamestate.get_racket_ypos(id) as u16);
     }
     // TODO same for ball
 }

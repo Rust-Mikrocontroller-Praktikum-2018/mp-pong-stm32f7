@@ -2,6 +2,7 @@ use fps;
 use graphics;
 use input;
 use lcd::FramebufferL8;
+use lcd::Framebuffer;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
 use physics;
 use racket;
@@ -18,6 +19,7 @@ pub enum GameState {
 }
 
 pub fn game_loop_local(
+    just_entered_state: bool,
     framebuffer: &mut FramebufferL8,
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
@@ -26,6 +28,11 @@ pub fn game_loop_local(
     local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
 ) {
+    if just_entered_state {
+        framebuffer.clear();
+        graphics::draw_initial(framebuffer, rackets);
+    }
+
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
 
     // handle input
@@ -38,6 +45,7 @@ pub fn game_loop_local(
 }
 
 pub fn game_loop_network(
+    just_entered_state: bool, 
     framebuffer: &mut FramebufferL8,
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
@@ -49,6 +57,11 @@ pub fn game_loop_network(
     is_server: bool,
     network: &mut Network,
 ) {
+    if just_entered_state {
+        framebuffer.clear();
+        graphics::draw_initial(framebuffer, rackets);
+    }
+
     if is_server {
         handle_network_server(server, network, local_gamestate, local_input_1);
     } else {

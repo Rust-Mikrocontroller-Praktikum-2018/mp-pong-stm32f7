@@ -30,7 +30,6 @@ use game::GameState;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use lcd::TextWriter;
-use network::{EthServer, GamestatePacket, InputPacket, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
@@ -173,10 +172,11 @@ fn main(hw: board::Hardware) -> ! {
     let mut loading_font = TextWriter::new(TTF, 40.0);
     loading_font.write(
         &mut framebuffer,
-        "YEA, thats cool. I never imagined something",
+        "loading...",
     );
 
     let mut menu_font = TextWriter::new(TTF, 20.0);
+    let mut debug_font = TextWriter::new(TTF, 20.0);
 
     lcd.swap_buffers();
     framebuffer.swap_buffers();
@@ -234,14 +234,9 @@ fn main(hw: board::Hardware) -> ! {
 
             // Create Rackets
             let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
-            // Draw Start Position
-            for racket in rackets.iter_mut() {
-                racket.draw_racket(&mut framebuffer);
-            }
 
             // setup local "network"
             let is_server = false; // Server is player 1
-            let is_local = true;
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
@@ -272,10 +267,16 @@ fn main(hw: board::Hardware) -> ! {
                             &mut menu_font,
                             &mut i2c_3,
                         ),
-                        GameState::ChooseClientOrServer => GameState::ChooseClientOrServer,
+                        GameState::ChooseClientOrServer => {
+                            if just_entered_state {
+                                debug_font.write(&mut framebuffer, "Choose client or server not yet implemented.");
+                            }
+                            GameState::ChooseClientOrServer
+                        },
                         GameState::ConnectToNetwork => GameState::ConnectToNetwork,
                         GameState::GameRunningLocal => {
                             game::game_loop_local(
+                                just_entered_state,
                                 &mut framebuffer,
                                 &mut i2c_3,
                                 &fps,
@@ -288,6 +289,7 @@ fn main(hw: board::Hardware) -> ! {
                         }
                         GameState::GameRunningNetwork => {
                             game::game_loop_network(
+                                just_entered_state,
                                 &mut framebuffer,
                                 &mut i2c_3,
                                 &fps,
