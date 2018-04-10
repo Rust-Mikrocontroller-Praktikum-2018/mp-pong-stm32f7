@@ -29,8 +29,8 @@ use lcd::FramebufferL8;
 use network::Network;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
-use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 use stm32f7::lcd::FontRenderer;
+use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -172,26 +172,24 @@ fn main(hw: board::Hardware) -> ! {
     let font_height = font_renderer.font_height() as usize;
 
     font_renderer.render("loading game...", |x, y, v| {
-            if *x_pos + x >= lcd::WIDTH {
-                *x_pos = 0;
-                *y_pos += font_height;
-            }
-            if *y_pos + font_height >= lcd::HEIGHT {
-                *y_pos = 0;
-                // TODO: no place for text D:
-            }
-            let alpha = (v * 255.0 + 0.5) as u8;
-            framebuffer.set_pixel_direct(*x_pos + x, *y_pos + y, alpha);
+        if *x_pos + x >= lcd::WIDTH {
+            *x_pos = 0;
+            *y_pos += font_height;
+        }
+        if *y_pos + font_height >= lcd::HEIGHT {
+            *y_pos = 0;
+            // TODO: no place for text D:
+        }
+        let alpha = (v * 255.0 + 0.5) as u8;
+        framebuffer.set_pixel_direct(*x_pos + x, *y_pos + y, alpha);
     });
     lcd.swap_buffers();
     framebuffer.swap_buffers();
-
 
     // init touch screen
     i2c::init_pins_and_clocks(rcc, &mut gpio);
     let mut i2c_3 = i2c::init(i2c_3);
     touch::check_family_id(&mut i2c_3).unwrap();
-
 
     let mut network = network::init(
         rcc,
@@ -254,7 +252,6 @@ fn main(hw: board::Hardware) -> ! {
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();
 
-
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
                 unsafe {
@@ -314,15 +311,7 @@ fn game_loop_local(
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
 
     // handle input
-    let input = input::evaluate_touch(
-        i2c_3,
-        rackets[0].get_ypos_centre(),
-        rackets[1].get_ypos_centre(),
-    );
-    local_input_1.up = input.is_up_pressed();
-    local_input_1.down = input.is_down_pressed();
-    local_input_2.up = input.is_up_pressed2();
-    local_input_2.down = input.is_down_pressed2();
+    input::evaluate_touch_two_players(i2c_3, local_input_1, local_input_2);
 
     // move rackets and ball
     graphics::update_graphics(framebuffer, local_gamestate, rackets);
@@ -349,14 +338,7 @@ fn game_loop_network(
     }
 
     // handle input
-    let input = input::evaluate_touch(
-        i2c_3,
-        rackets[0].get_ypos_centre(),
-        rackets[1].get_ypos_centre(),
-    );
-
-    local_input_1.up = input.is_up_pressed() || input.is_up_pressed2();
-    local_input_1.down = input.is_down_pressed() || input.is_down_pressed2();
+    input::evaluate_touch_one_player(i2c_3, local_input_1);
 
     // move rackets and ball
     graphics::update_graphics(framebuffer, local_gamestate, rackets);
@@ -370,9 +352,7 @@ fn handle_local_calculations(
     local_input_2: &InputPacket,
 ) {
     let inputs = [*local_input_1, *local_input_2];
-
     physics::calculate_physics(local_gamestate, inputs);
-
 }
 
 fn handle_network_server(
@@ -382,9 +362,7 @@ fn handle_network_server(
     local_input_1: &InputPacket,
 ) {
     let inputs = [*local_input_1, server.receive_input(network)];
-
     physics::calculate_physics(local_gamestate, inputs);
-
     server.send_gamestate(network, local_gamestate);
 }
 
@@ -397,4 +375,3 @@ fn handle_network_client(
     *local_gamestate = client.receive_gamestate(network);
     client.send_input(network, local_input_1);
 }
-

@@ -1,66 +1,28 @@
 use i2c;
+use network::InputPacket;
 use touch;
 
-pub struct Input {
-    top_left: bool,
-    bottom_left: bool,
-    top_right: bool,
-    bottom_right: bool,
-}
-impl Input {
-    pub fn new() -> Input {
-        Input {
-            top_left: false,
-            bottom_left: false,
-            top_right: false,
-            bottom_right: false,
-        }
-    }
-    pub fn is_up_pressed(&self) -> bool {
-        self.top_left
-    }
-    pub fn is_down_pressed(&self) -> bool {
-        self.bottom_left
-    }
-
-    // for local player 2
-    pub fn is_up_pressed2(&self) -> bool {
-        self.top_right
-    }
-    pub fn is_down_pressed2(&self) -> bool {
-        self.bottom_right
-    }
-}
-pub fn evaluate_touch(
+pub fn evaluate_touch_two_players(
     i2c_3: &mut i2c::I2C,
-    racket_1_ypos_centre: u16,
-    racket_2_ypos_centre: u16,
-) -> Input {
-    let mut input = Input::new();
+    local_input_1: &mut InputPacket,
+    local_input_2: &mut InputPacket,
+) {
     // poll for new touch data
     for touch in &touch::touches(i2c_3).unwrap() {
         //Player_1
         if touch.x <= 199 {
-            //if touch above current racket_position
-            if touch.y < racket_1_ypos_centre {
-                input.top_left = true;
-            }
-            //if touch below current racket position
-            else if touch.y > racket_1_ypos_centre {
-                input.bottom_left = true;
-            }
+            local_input_1.goal_y = touch.y as i16;
         }
         // Player_2
         if touch.x >= 280 {
-            //if touch above current racket_position
-            if touch.y < racket_2_ypos_centre {
-                input.top_right = true;
-            }
-            //if touch below current racket position
-            else if touch.y > racket_2_ypos_centre {
-                input.bottom_right = true;
-            }
+            local_input_2.goal_y = touch.y as i16;
         }
     }
-    input
+}
+
+pub fn evaluate_touch_one_player(i2c_3: &mut i2c::I2C, local_input_1: &mut InputPacket) {
+    // poll for new touch data
+    for touch in &touch::touches(i2c_3).unwrap() {
+        local_input_1.goal_y = touch.y as i16;
+    }
 }

@@ -20,8 +20,7 @@ pub struct BallPacket {
 }
 #[derive(Debug, Copy, Clone)]
 pub struct InputPacket {
-    pub up: bool,
-    pub down: bool,
+    pub goal_y: i16,
 }
 
 impl GamestatePacket {
@@ -52,19 +51,7 @@ impl GamestatePacket {
 impl InputPacket {
     pub fn new() -> InputPacket {
         InputPacket {
-            up: false,
-            down: false,
-        }
-    }
-    pub fn says_move_up(&self) -> i8 {
-        if self.up != self.down {
-            if self.up {
-                -1
-            } else {
-                1
-            }
-        } else {
-            0
+            goal_y: 272/2
         }
     }
 }
@@ -159,26 +146,20 @@ impl Serializable for BallPacket {
 
 impl Serializable for InputPacket {
     fn serialize(&self) -> Vec<u8> {
-        let mut result: u8 = 0;
-        if self.up {
-            result |= 0b0000_0001;
-        }
-        if self.down {
-            result |= 0b0000_0010;
-        }
-
-        vec![result]
+        let mut result = Vec::new();
+        result.push(upper_byte(self.goal_y));
+        result.push(lower_byte(self.goal_y));
+        result
     }
 
     fn deserialize(input: &[u8]) -> InputPacket {
         InputPacket {
-            up: input[0] & 0b0000_0001 != 0,
-            down: input[0] & 0b0000_0010 != 0,
+            goal_y: merge(input[0], input[1]),
         }
     }
 
     fn len() -> usize {
-        1
+        2
     }
 }
 

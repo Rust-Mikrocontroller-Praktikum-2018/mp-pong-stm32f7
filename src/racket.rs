@@ -1,8 +1,8 @@
 use BGCOLOR;
-use lcd;
-use graphics;
-use core::cmp::min;
 use core::cmp::max;
+use core::cmp::min;
+use graphics;
+use lcd;
 
 //general Racket Properties
 const RACKET_WIDTH: u16 = 10;
@@ -99,46 +99,48 @@ impl Racket {
         //update self position
         self.ypos_centre =gamestate[1]}
 */
-    pub fn update_racket_pos(& mut self, framebuffer: &mut lcd::FramebufferL8, new_ypos_centre:u16){
+    pub fn update_racket_pos(
+        &mut self,
+        framebuffer: &mut lcd::FramebufferL8,
+        new_ypos_centre: u16,
+    ) {
         //Remember old state
-        self.ypos_centre_old=self.ypos_centre;
+        self.ypos_centre_old = self.ypos_centre;
         //Copy Position from Gamestate to self
-        self.ypos_centre=new_ypos_centre;    
-        //draw Racket in new Position       
-            //if racket moved down
-            if self.ypos_centre > self.ypos_centre_old {
-                self.draw_moved_racket(
-                    framebuffer,
-                    self.get_ypos_centre_old() - RACKET_HEIGHT,
-                    min(
-                        self.get_ypos_centre() - RACKET_HEIGHT - 1,
-                        self.get_ypos_centre_old() + RACKET_HEIGHT,
-                    ),
-                    max(
-                        self.get_ypos_centre_old() + RACKET_HEIGHT,
-                        self.get_ypos_centre() - RACKET_HEIGHT,
-                    ),
-                    self.get_ypos_centre() + RACKET_HEIGHT,
-                    
-                );
-            }
-            //if racket moved up
-            if self.get_ypos_centre() < self.get_ypos_centre_old() {
-                //TODO CREATE FN MOVE RACKET
-                self.draw_moved_racket(
-                    framebuffer,
-                    max(
-                        self.get_ypos_centre() + RACKET_HEIGHT + 1,
-                        self.get_ypos_centre_old() - RACKET_HEIGHT,
-                    ),
+        self.ypos_centre = new_ypos_centre;
+        //draw Racket in new Position
+        //if racket moved down
+        if self.ypos_centre > self.ypos_centre_old {
+            self.draw_moved_racket(
+                framebuffer,
+                self.get_ypos_centre_old() - RACKET_HEIGHT,
+                min(
+                    self.get_ypos_centre() - RACKET_HEIGHT - 1,
+                    self.get_ypos_centre_old() + RACKET_HEIGHT,
+                ),
+                max(
                     self.get_ypos_centre_old() + RACKET_HEIGHT,
                     self.get_ypos_centre() - RACKET_HEIGHT,
-                    min(
-                        self.get_ypos_centre_old() - RACKET_HEIGHT,
-                        self.get_ypos_centre() + RACKET_HEIGHT,
-                    ),
-                );
-            }
-        
+                ),
+                self.get_ypos_centre() + RACKET_HEIGHT,
+            );
+        }
+        //if racket moved up
+        if self.get_ypos_centre() < self.get_ypos_centre_old() {
+            //TODO CREATE FN MOVE RACKET
+            self.draw_moved_racket(
+                framebuffer,
+                max(
+                    self.get_ypos_centre() + RACKET_HEIGHT + 1,
+                    self.get_ypos_centre_old() - RACKET_HEIGHT,
+                ),
+                self.get_ypos_centre_old() + RACKET_HEIGHT,
+                self.get_ypos_centre() - RACKET_HEIGHT,
+                min(
+                    self.get_ypos_centre_old() - RACKET_HEIGHT,
+                    self.get_ypos_centre() + RACKET_HEIGHT,
+                ),
+            );
+        }
     }
 }
