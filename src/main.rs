@@ -272,7 +272,7 @@ fn main(hw: board::Hardware) -> ! {
                         ),
                         GameState::ConnectToNetwork => {
                             framebuffer.clear();
-                            loading_font.write(&mut framebuffer, "Initializing network...");
+                            loading_font.write_at(&mut framebuffer, "Initializing network...", 0, 0);
                             framebuffer.swap_buffers();
                             match network.take() {
                                 Some((ethernet_dma, ethernet_mac)) => {
@@ -326,8 +326,9 @@ fn main(hw: board::Hardware) -> ! {
                             GameState::GameRunningLocal
                         },
                         GameState::WaitForPartner(mut network) => {
-                            if (just_entered_state) {
-                                menu_font.write_at(&mut framebuffer, "Waiting for partner. Please make sure you start a client and a server", 0, 50);
+                            if just_entered_state {
+                                
+                                menu_font.write_at(&mut framebuffer, if is_server { "Waiting for client..."} else {"Waiting for server..."}, 0, 50);
                             }
 
                             if is_server {
