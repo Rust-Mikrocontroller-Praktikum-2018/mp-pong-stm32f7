@@ -263,6 +263,12 @@ fn main(hw: board::Hardware) -> ! {
                             &mut input,
                             &mut is_server,
                         ),
+                        GameState::ChooseOnlyLocal => menu::choose_only_local(
+                            just_entered_state,
+                            &mut framebuffer,
+                            &mut menu_font,
+                            &mut input,
+                        ),
                         GameState::ConnectToNetwork => {
                             framebuffer.clear();
                             loading_font.write(&mut framebuffer, "Initializing network...");
@@ -295,7 +301,7 @@ fn main(hw: board::Hardware) -> ! {
 
                                     match network_option {
                                         Some(network) => GameState::GameRunningNetwork(network),
-                                        None => GameState::ChooseLocalOrNetwork,
+                                        None => GameState::ChooseOnlyLocal,
                                     }
                                 }
                                 None => panic!(),

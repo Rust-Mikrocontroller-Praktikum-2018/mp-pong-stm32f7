@@ -12,6 +12,7 @@ pub enum GameState {
     Splash,
     ChooseLocalOrNetwork,
     ChooseClientOrServer,
+    ChooseOnlyLocal,
     ConnectToNetwork,
     GameRunningLocal,
     GameRunningNetwork(Network),
