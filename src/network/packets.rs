@@ -47,6 +47,10 @@ impl GamestatePacket {
         self.rackets[id].y = new_racket_ypos;
     }
     //Get and Set Functions of Ball
+    pub fn get_ball(&self) -> BallPacket {
+        self.ball
+    }
+
     pub fn get_ball_xpos(&self) -> i16 {
         self.ball.x
     }
@@ -56,6 +60,9 @@ impl GamestatePacket {
         self.ball.x_vel
     }pub fn get_ball_yvel(&self) -> i16 {
         self.ball.y_vel
+    }
+    pub fn set_ball(&mut self,new_ball: BallPacket) {
+        self.ball = new_ball;
     }
     pub fn set_ball_xpos(&mut self,new_ball_xpos: i16) {
         self.ball.x = new_ball_xpos;
