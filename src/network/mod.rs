@@ -81,7 +81,7 @@ pub fn init(
     ethernet_addr: EthernetAddress,
     ip_addr: Ipv4Address,
     partner_ip_addr: Ipv4Address,
-) -> Option<Network> {
+) -> Result<Network, ethernet::Error> {
     // Ethernet init
     let ethernet_interface = ethernet::EthernetDevice::new(
         Default::default(),
@@ -94,8 +94,9 @@ pub fn init(
         ethernet_addr,
     ).map(|device| device.into_interface(ip_addr));
     if let Err(e) = ethernet_interface {
-        hprintln!("ethernet init failed: {:?}", e);
-        return None;
+        //hprintln!("ethernet init failed: {:?}", e);
+        //return None;
+        return Err(e);
     }
 
     let mut sockets = SocketSet::new(Vec::new());
@@ -107,7 +108,7 @@ pub fn init(
     udp_socket.bind(endpoint).unwrap();
     sockets.add(udp_socket);
 
-    Some(Network {
+    Ok(Network {
         ethernet_interface: ethernet_interface.unwrap(),
         sockets: sockets,
         partner_ip_addr: partner_ip_addr,

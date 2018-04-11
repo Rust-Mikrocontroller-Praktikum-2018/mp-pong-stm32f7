@@ -66,7 +66,7 @@ pub fn choose_only_local(
     input: &mut Input,
 ) -> GameState {
     if just_entered {
-        framebuffer.clear();
+        // framebuffer.clear(); // Don't clear as we cleared and wrote the debug message before
         text_writer.write_at(framebuffer, "Local Multiplayer", 40, 130);
         //text_writer.write_at(framebuffer, "Play on one device", 200, 150);
         text_writer.write_at(framebuffer, "-------------------", 260, 130);

@@ -6,7 +6,6 @@ use lcd::FramebufferL8;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
 use physics;
 use racket;
-use stm32f7::i2c;
 
 pub enum GameState {
     Splash,

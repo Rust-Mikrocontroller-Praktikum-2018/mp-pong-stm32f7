@@ -300,8 +300,12 @@ fn main(hw: board::Hardware) -> ! {
                                     };
 
                                     match network_option {
-                                        Some(network) => GameState::GameRunningNetwork(network),
-                                        None => GameState::ChooseOnlyLocal,
+                                        Ok(network) => GameState::GameRunningNetwork(network),
+                                        Err(e) => {
+                                            framebuffer.clear();
+                                            debug_font.write(&mut framebuffer, &format!("Network error: {:?}", e));
+                                            GameState::ChooseOnlyLocal  
+                                        },
                                     }
                                 }
                                 None => panic!(),
