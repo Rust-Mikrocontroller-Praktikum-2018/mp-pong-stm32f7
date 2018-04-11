@@ -25,6 +25,9 @@ const SDRAM_START: usize = 0xC000_0000;
 const LAYER_1_START: usize = SDRAM_START;
 const LAYER_1_START_2: usize = SDRAM_START + 1024 * 1024 * 1; // move backbuffer to second SDRAM bank
 
+static EMPTY_IMG: &[u8] = include_bytes!("../../res/empty.img");
+
+
 pub struct Lcd {
     controller: &'static mut Ltdc,
     display_enable: OutputPin,
@@ -86,6 +89,7 @@ pub trait Framebuffer {
     fn set_pixel(&mut self, x: usize, y: usize, color: u8);
     fn swap_buffers(&mut self);
     fn clear(&mut self);
+    fn copy_full(&mut self, src_start_ptr: *const u8);
 }
 
 pub struct FramebufferL8 {
@@ -171,10 +175,25 @@ impl Framebuffer for FramebufferL8 {
     }
 
     fn clear(&mut self) {
-        for i in 0..HEIGHT {
+        // slow
+        /*for i in 0..HEIGHT {
             for j in 0..WIDTH {
                 self.set_pixel(j, i, 0);
             }
+        }*/
+        let src_start_ptr = &EMPTY_IMG[0] as *const u8;
+        self.copy_full(src_start_ptr);
+    }
+
+    fn copy_full(&mut self, src_start_ptr: *const u8) {
+        let dest_start_ptr = self.current_base_addr() as *mut u32;
+
+        unsafe {
+            ptr::copy_nonoverlapping(
+                src_start_ptr as *const u32,
+                dest_start_ptr,
+                WIDTH * HEIGHT / 4  // we only store u8 for every pixel
+            );
         }
     }
 }

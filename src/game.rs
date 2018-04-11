@@ -7,6 +7,7 @@ use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Networ
 use physics;
 use racket;
 use ball;
+use lcd::TextWriter;
 
 pub enum GameState {
     Splash,
@@ -29,6 +30,7 @@ pub fn game_loop_local(
     local_input_1: &mut InputPacket,
     local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
+    menu_font: &mut TextWriter,
 ) {
     if just_entered_state {
         framebuffer.clear();
@@ -41,7 +43,7 @@ pub fn game_loop_local(
     input.evaluate_touch_two_players(local_input_1, local_input_2);
 
     // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets,ball);
+    graphics::update_graphics(framebuffer, local_gamestate, rackets, ball, menu_font);
 
     graphics::draw_fps(framebuffer, fps);
 }
@@ -59,6 +61,7 @@ pub fn game_loop_network(
     local_gamestate: &mut GamestatePacket,
     is_server: bool,
     network: &mut Network,
+    menu_font: &mut TextWriter,
 ) {
     if just_entered_state {
         framebuffer.clear();
@@ -75,7 +78,7 @@ pub fn game_loop_network(
     input.evaluate_touch_one_player(local_input_1);
 
     // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets,ball);
+    graphics::update_graphics(framebuffer, local_gamestate, rackets, ball, menu_font);
 
     graphics::draw_fps(framebuffer, fps);
 }

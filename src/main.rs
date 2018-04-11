@@ -320,21 +320,7 @@ fn main(hw: board::Hardware) -> ! {
                                 None => panic!(),
                             }
                         },
-                        GameState::GameRunningLocal => {
-                            game::game_loop_local(
-                                just_entered_state,
-                                &mut framebuffer,
-                                &mut input,
-                                &fps,
-                                &mut rackets,
-                                &mut ball,
-                                &mut local_input_1,
-                                &mut local_input_2,
-                                &mut server_gamestate,
-                            );
-                            GameState::GameRunningLocal
-                        },
-                        GameState::WaitForPartner(mut network) => {
+                                                GameState::WaitForPartner(mut network) => {
                             if just_entered_state {
                                 
                                 menu_font.write_at(&mut framebuffer, if is_server { "Waiting for client..."} else {"Waiting for server..."}, 0, 50);
@@ -356,6 +342,21 @@ fn main(hw: board::Hardware) -> ! {
                                 }
                             }
                         },
+                        GameState::GameRunningLocal => {
+                            game::game_loop_local(
+                                just_entered_state,
+                                &mut framebuffer,
+                                &mut input,
+                                &fps,
+                                &mut rackets,
+                                &mut ball,
+                                &mut local_input_1,
+                                &mut local_input_2,
+                                &mut server_gamestate,
+                                &mut loading_font,
+                            );
+                            GameState::GameRunningLocal
+                        },
                         GameState::GameRunningNetwork(mut network) => {
                             game::game_loop_network(
                                 just_entered_state,
@@ -370,11 +371,13 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut server_gamestate,
                                 is_server,
                                 &mut network,
+                                &mut loading_font,
                             );
                             GameState::GameRunningNetwork(network)
                         },
                     };
 
+                    graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
                     unsafe {

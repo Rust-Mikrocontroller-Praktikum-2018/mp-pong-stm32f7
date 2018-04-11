@@ -11,7 +11,7 @@ if [[ $FILE == *.pgm ]]; then
 fi
 
 # for  L8:
-tail $FILE.pgm -n +5 > $FILE.img
+tail $FILE.pgm -n +5 > ../res/$FILE.img
 
 # for AL88, we have to add ff before every one:
 #tail $FILE.pgm -n +5 > tmp.l8
