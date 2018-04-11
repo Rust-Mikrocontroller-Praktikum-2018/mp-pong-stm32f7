@@ -14,6 +14,7 @@ pub enum GameState {
     ChooseOnlyLocal,
     ConnectToNetwork,
     GameRunningLocal,
+    WaitForPartner(Network),
     GameRunningNetwork(Network),
 }
 

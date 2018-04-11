@@ -34,6 +34,7 @@ use lcd::TextWriter;
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
+use network::{Client, Server};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -300,7 +301,7 @@ fn main(hw: board::Hardware) -> ! {
                                     };
 
                                     match network_option {
-                                        Ok(network) => GameState::GameRunningNetwork(network),
+                                        Ok(network) => GameState::WaitForPartner(network),
                                         Err(e) => {
                                             framebuffer.clear();
                                             debug_font.write(&mut framebuffer, &format!("Network error: {:?}", e));
@@ -310,7 +311,7 @@ fn main(hw: board::Hardware) -> ! {
                                 }
                                 None => panic!(),
                             }
-                        }
+                        },
                         GameState::GameRunningLocal => {
                             game::game_loop_local(
                                 just_entered_state,
@@ -323,7 +324,28 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut server_gamestate,
                             );
                             GameState::GameRunningLocal
-                        }
+                        },
+                        GameState::WaitForPartner(mut network) => {
+                            if (just_entered_state) {
+                                menu_font.write_at(&mut framebuffer, "Waiting for partner. Please make sure you start a client and a server", 0, 50);
+                            }
+
+                            if is_server {
+                                server.send_whoami(&mut network);
+                                if server.is_client_connected(&mut network) {
+                                    GameState::GameRunningNetwork(network)
+                                } else {
+                                    GameState::WaitForPartner(network)
+                                }
+                            } else {
+                                client.send_whoami(&mut network);
+                                if client.is_server_connected(&mut network) {
+                                    GameState::GameRunningNetwork(network)
+                                } else {
+                                    GameState::WaitForPartner(network)
+                                }
+                            }
+                        },
                         GameState::GameRunningNetwork(mut network) => {
                             game::game_loop_network(
                                 just_entered_state,
@@ -339,7 +361,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut network,
                             );
                             GameState::GameRunningNetwork(network)
-                        }
+                        },
                     };
 
                     // end of frame

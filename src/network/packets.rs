@@ -22,6 +22,10 @@ pub struct BallPacket {
 pub struct InputPacket {
     pub goal_y: i16,
 }
+#[derive(Debug, Copy, Clone)]
+pub struct WhoamiPacket {
+    pub is_server: bool,
+}
 
 impl GamestatePacket {
     pub fn new() -> GamestatePacket {
@@ -72,6 +76,14 @@ impl GamestatePacket {
 impl InputPacket {
     pub fn new() -> InputPacket {
         InputPacket { goal_y: 272 / 2 }
+    }
+}
+
+impl WhoamiPacket {
+    pub fn new(is_server: bool) -> WhoamiPacket {
+        WhoamiPacket {
+            is_server: is_server
+        }
     }
 }
 
@@ -181,6 +193,27 @@ impl Serializable for InputPacket {
         2
     }
 }
+
+impl Serializable for WhoamiPacket {
+    fn serialize(&self) -> Vec<u8> {
+        if self.is_server {
+            vec![255]
+        } else {
+            vec![0]
+        }
+    }
+
+    fn deserialize(input: &[u8]) -> WhoamiPacket {
+        WhoamiPacket {
+            is_server: input[0] == 255,
+        }
+    }
+
+    fn len() -> usize {
+        1
+    }
+}
+
 
 fn upper_byte(input: i16) -> u8 {
     ((input >> 8) & 0xff) as u8

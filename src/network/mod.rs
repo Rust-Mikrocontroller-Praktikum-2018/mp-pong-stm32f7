@@ -10,6 +10,7 @@ pub use self::packets::BallPacket;
 pub use self::packets::GamestatePacket;
 pub use self::packets::InputPacket;
 pub use self::packets::RacketPacket;
+pub use self::packets::WhoamiPacket;
 use self::packets::Serializable;
 
 use alloc::Vec;
@@ -118,11 +119,16 @@ pub fn init(
 pub trait Client {
     fn send_input(&mut self, network: &mut Network, input: &InputPacket);
     fn receive_gamestate(&mut self, network: &mut Network) -> GamestatePacket;
+    fn is_server_connected(&mut self, network: &mut Network) -> bool;
+    fn send_whoami(&mut self, network: &mut Network);
 }
 
 pub trait Server {
     fn receive_input(&mut self, network: &mut Network) -> InputPacket;
-    fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket);
+    fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket); 
+    fn is_client_connected(&mut self, network: &mut Network) -> bool;
+    fn send_whoami(&mut self, network: &mut Network);
+
 }
 
 pub struct EthServer {
@@ -135,7 +141,9 @@ impl Server for EthServer {
         match result {
             Ok(value) => match value {
                 Some(data) => {
-                    self.player_input = InputPacket::deserialize(&data);
+                    if data.len() == InputPacket::len() {
+                        self.player_input = InputPacket::deserialize(&data);
+                    }
                     // hprintln!("input: {:?} {:?}", data, self.player_input);
                 }
                 None => {}
@@ -149,6 +157,34 @@ impl Server for EthServer {
     }
     fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket) {
         network.send_udp_packet(&gamestate.serialize());
+    }
+
+    fn is_client_connected(&mut self, network: &mut Network) -> bool {
+        let result = network.get_udp_packet();
+        match result {
+            Ok(value) => match value {
+                Some(data) => {
+                    if data.len() == WhoamiPacket::len() {
+                        let whoami = WhoamiPacket::deserialize(&data);
+                        if whoami.is_server == false {
+                            return true
+                        }
+                    }
+                }
+                None => {}
+            },
+            Err(smoltcp::Error::Exhausted) => {}
+            Err(e) => {
+                hprintln!("Network error: {:?}", e);
+            }
+        }
+        false
+    }
+
+    fn send_whoami(&mut self, network: &mut Network) {
+        network.send_udp_packet(&WhoamiPacket{
+            is_server: true,
+        }.serialize())
     }
 }
 
@@ -173,7 +209,9 @@ impl Client for EthClient {
         match result {
             Ok(value) => match value {
                 Some(data) => {
-                    self.gamestate = GamestatePacket::deserialize(&data);
+                    if data.len() == GamestatePacket::len() {
+                        self.gamestate = GamestatePacket::deserialize(&data);
+                    }
                     // hprintln!("state: {:?} {:?}", data, self.gamestate);
                 }
                 None => {}
@@ -184,6 +222,34 @@ impl Client for EthClient {
             }
         }
         self.gamestate
+    }
+    
+    fn is_server_connected(&mut self, network: &mut Network) -> bool {
+        let result = network.get_udp_packet();
+        match result {
+            Ok(value) => match value {
+                Some(data) => {
+                    if data.len() == WhoamiPacket::len() {
+                        
+                    }
+                    if data.len() == GamestatePacket::len() {
+                        return true;
+                    }
+                }
+                None => {}
+            },
+            Err(smoltcp::Error::Exhausted) => {}
+            Err(e) => {
+                hprintln!("Network error: {:?}", e);
+            }
+        }
+        false
+    }
+
+    fn send_whoami(&mut self, network: &mut Network) {
+        network.send_udp_packet(&WhoamiPacket{
+            is_server: false,
+        }.serialize())
     }
 }
 
