@@ -1,3 +1,4 @@
+use ball;
 use fps;
 use lcd;
 use lcd::Framebuffer;
@@ -21,15 +22,54 @@ pub fn draw_rectangle(
 
 pub fn draw_circle(
     buffer: &mut lcd::FramebufferL8,
-    x_pos_centre: u16,
-    y_pos_centre: u16,
-    radius: u16,
+    x_pos_centre: u32,
+    y_pos_centre: u32,
+    radius: u32,
     color: u8,
 ) {
     for y in y_pos_centre - radius..=y_pos_centre + radius {
         for x in x_pos_centre - radius..=x_pos_centre + radius {
-            if (x - x_pos_centre) * (x - x_pos_centre) + (y - y_pos_centre) * (y - y_pos_centre)
+            if x * x + x_pos_centre * x_pos_centre - 2 * x * x_pos_centre + y * y
+                + y_pos_centre * y_pos_centre - 2 * y * y_pos_centre
                 <= radius * radius
+            {
+                buffer.set_pixel(x as usize, y as usize, color);
+            }
+        }
+    }
+}
+pub fn draw_partial_circle(
+    buffer: &mut lcd::FramebufferL8,
+    x_pos_centre: u32,
+    y_pos_centre: u32,
+    x_pos_centre_part: u32,
+    y_pos_centre_part: u32,
+    radius: u32,
+    radius_part: u32,
+    color: u8,
+) {
+    //all coordinates of square around circle
+    for y in y_pos_centre - radius..=y_pos_centre + radius {
+        for x in x_pos_centre - radius..=x_pos_centre + radius {
+            //if coordinates not inside square around overlapping circle
+            if (x < x_pos_centre_part - radius_part || x > x_pos_centre + radius_part)
+                && (y < y_pos_centre_part - radius_part || y > y_pos_centre_part + radius_part)
+            {
+                //if coordinates fulfil circle equation
+                if x * x + x_pos_centre * x_pos_centre - 2 * x * x_pos_centre + y * y
+                    + y_pos_centre * y_pos_centre - 2 * y * y_pos_centre
+                    <= radius * radius
+                {
+                    buffer.set_pixel(x as usize, y as usize, color);
+                }
+            }
+            //if coordinates inside square around overlapping circle, check for each pixel individually
+            else if (x * x + x_pos_centre_part * x_pos_centre_part - 2 * x * x_pos_centre_part
+                + y * y + y_pos_centre_part * y_pos_centre_part
+                - 2 * y * y_pos_centre_part > radius_part * radius_part)
+                && (x * x + x_pos_centre * x_pos_centre - 2 * x * x_pos_centre + y * y
+                    + y_pos_centre * y_pos_centre - 2 * y * y_pos_centre
+                    <= radius * radius)
             {
                 buffer.set_pixel(x as usize, y as usize, color);
             }
@@ -175,16 +215,22 @@ pub fn quad(x: usize, y: usize, size: usize, color: &u8, framebuffer: &mut lcd::
     }
 }
 
-pub fn draw_initial(framebuffer: &mut lcd::FramebufferL8, rackets: &mut [racket::Racket; 2]) {
-    // Draw Start Position
-    for racket in rackets.iter_mut() {
+pub fn draw_initial(
+    framebuffer: &mut lcd::FramebufferL8,
+    rackets: &[racket::Racket; 2],
+    ball: &ball::Ball,
+) {
+    // Draw Racket Start Position
+    for racket in rackets.iter() {
         racket.draw_racket(framebuffer);
     }
+    ball.draw_ball(framebuffer);
 }
 pub fn update_graphics(
     framebuffer: &mut lcd::FramebufferL8,
     gamestate: &network::GamestatePacket,
     rackets: &mut [racket::Racket; 2],
+    ball: &mut ball::Ball,
 ) {
     // TODO: implement
     // send gamestate to racket to let racket move
@@ -192,4 +238,5 @@ pub fn update_graphics(
         rackets[id].update_racket_pos(framebuffer, gamestate.get_racket_ypos(id) as u16);
     }
     // TODO same for ball
+    ball.update_ball_pos(framebuffer, gamestate.get_ball())
 }
