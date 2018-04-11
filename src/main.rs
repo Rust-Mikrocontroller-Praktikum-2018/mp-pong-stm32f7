@@ -178,7 +178,7 @@ fn main(hw: board::Hardware) -> ! {
     let mut menu_font = TextWriter::new(TTF, 20.0);
     let mut debug_font = TextWriter::new(TTF, 20.0);
 
-    lcd.swap_buffers();
+    lcd.swap_buffers(); // show loading text
     framebuffer.swap_buffers();
 
     // init touch screen
@@ -225,8 +225,6 @@ fn main(hw: board::Hardware) -> ! {
                     },
                 )
                 .expect("LcdTft interrupt already used");
-
-            framebuffer.clear();
             hprintln!("Start run()");
             //// INIT COMPLETE ////
             let mut fps = fps::init();
