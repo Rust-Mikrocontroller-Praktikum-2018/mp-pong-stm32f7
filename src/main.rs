@@ -43,6 +43,7 @@ const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
 const PRINT_START_MESSAGE: bool = false;
 const BGCOLOR: u8 = 0;
+const PADDING: usize = 20;
 
 const CLIENT_ETH_ADDR: EthernetAddress = EthernetAddress([0x00, 0x11, 0x22, 0x33, 0x44, 0x01]);
 const CLIENT_IP_ADDR: Ipv4Address = Ipv4Address([141, 52, 46, 2]);
@@ -175,7 +176,7 @@ fn main(hw: board::Hardware) -> ! {
 
     // set up font renderer
     let mut loading_font = TextWriter::new(TTF, 40.0);
-    loading_font.write(&mut framebuffer, "loading...");
+    loading_font.write_at(&mut framebuffer, "loading...", PADDING, PADDING);
 
     let mut menu_font = TextWriter::new(TTF, 20.0);
     let mut debug_font = TextWriter::new(TTF, 20.0);
@@ -280,8 +281,8 @@ fn main(hw: board::Hardware) -> ! {
                             loading_font.write_at(
                                 &mut framebuffer,
                                 "Initializing network...",
-                                0,
-                                0,
+                                PADDING,
+                                PADDING,
                             );
                             framebuffer.swap_buffers();
                             match network.take() {
@@ -402,5 +403,5 @@ fn main(hw: board::Hardware) -> ! {
                 }
             }
         },
-    )
+    )   
 }
