@@ -8,14 +8,13 @@ use physics;
 use racket;
 use stm32f7::i2c;
 
-#[derive(PartialEq, Clone)]
 pub enum GameState {
     Splash,
     ChooseLocalOrNetwork,
     ChooseClientOrServer,
     ConnectToNetwork,
     GameRunningLocal,
-    GameRunningNetwork,
+    GameRunningNetwork(Network),
 }
 
 pub fn game_loop_local(

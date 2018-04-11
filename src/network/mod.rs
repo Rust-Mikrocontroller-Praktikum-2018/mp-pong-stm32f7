@@ -20,13 +20,13 @@ use system_clock;
 
 const PORT: u16 = 2018;
 
-pub struct Network<'a> {
-    ethernet_interface: EthernetInterface<'a, 'a, ethernet::EthernetDevice>,
-    sockets: SocketSet<'a, 'a, 'a>,
+pub struct Network {
+    ethernet_interface: EthernetInterface<'static, 'static, ethernet::EthernetDevice>,
+    sockets: SocketSet<'static, 'static, 'static>,
     partner_ip_addr: Ipv4Address,
 }
 
-impl<'a> Network<'a> {
+impl Network {
     pub fn get_udp_packet(&mut self) -> Result<Option<Vec<u8>>, smoltcp::Error> {
         match self.ethernet_interface.poll(
             &mut self.sockets,
@@ -81,7 +81,7 @@ pub fn init(
     ethernet_addr: EthernetAddress,
     ip_addr: Ipv4Address,
     partner_ip_addr: Ipv4Address,
-) -> Option<Network<'static>> {
+) -> Option<Network> {
     // Ethernet init
     let ethernet_interface = ethernet::EthernetDevice::new(
         Default::default(),
