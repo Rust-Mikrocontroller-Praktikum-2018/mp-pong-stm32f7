@@ -1,13 +1,14 @@
+use ball;
 use fps;
 use graphics;
+use graphics::GraphicsCache;
 use input::Input;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
+use lcd::TextWriter;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
 use physics;
 use racket;
-use ball;
-use lcd::TextWriter;
 
 pub enum GameState {
     Splash,
@@ -26,15 +27,16 @@ pub fn game_loop_local(
     input: &mut Input,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
-    ball:&mut ball::Ball,
+    ball: &mut ball::Ball,
     local_input_1: &mut InputPacket,
     local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
     menu_font: &mut TextWriter,
+    cache: &mut GraphicsCache,
 ) {
     if just_entered_state {
         framebuffer.clear();
-        graphics::draw_initial(framebuffer, rackets,ball);
+        graphics::draw_initial(framebuffer, rackets, ball);
     }
 
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
@@ -43,7 +45,14 @@ pub fn game_loop_local(
     input.evaluate_touch_two_players(local_input_1, local_input_2);
 
     // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets, ball, menu_font);
+    graphics::update_graphics(
+        framebuffer,
+        local_gamestate,
+        rackets,
+        ball,
+        menu_font,
+        cache,
+    );
 
     graphics::draw_fps(framebuffer, fps);
 }
@@ -54,7 +63,7 @@ pub fn game_loop_network(
     input: &mut Input,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
-    ball:&mut ball::Ball,
+    ball: &mut ball::Ball,
     client: &mut EthClient,
     server: &mut EthServer,
     local_input_1: &mut InputPacket,
@@ -62,10 +71,11 @@ pub fn game_loop_network(
     is_server: bool,
     network: &mut Network,
     menu_font: &mut TextWriter,
+    cache: &mut GraphicsCache,
 ) {
     if just_entered_state {
         framebuffer.clear();
-        graphics::draw_initial(framebuffer, rackets,ball);
+        graphics::draw_initial(framebuffer, rackets, ball);
     }
 
     if is_server {
@@ -78,7 +88,14 @@ pub fn game_loop_network(
     input.evaluate_touch_one_player(local_input_1);
 
     // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets, ball, menu_font);
+    graphics::update_graphics(
+        framebuffer,
+        local_gamestate,
+        rackets,
+        ball,
+        menu_font,
+        cache,
+    );
 
     graphics::draw_fps(framebuffer, fps);
 }

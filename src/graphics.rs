@@ -49,14 +49,14 @@ pub fn draw_partial_circle(
     radius_part: u32,
     color: u8,
 ) {
-    //all coordinates of square around circle
+    // all coordinates of square around circle
     for y in y_pos_centre - radius..=y_pos_centre + radius {
         for x in x_pos_centre - radius..=x_pos_centre + radius {
-            //if coordinates not inside square around overlapping circle
+            // if coordinates not inside square around overlapping circle
             if (x < x_pos_centre_part - radius_part || x > x_pos_centre + radius_part)
                 && (y < y_pos_centre_part - radius_part || y > y_pos_centre_part + radius_part)
             {
-                //if coordinates fulfil circle equation
+                // if coordinates fulfil circle equation
                 if x * x + x_pos_centre * x_pos_centre - 2 * x * x_pos_centre + y * y
                     + y_pos_centre * y_pos_centre - 2 * y * y_pos_centre
                     <= radius * radius
@@ -64,7 +64,7 @@ pub fn draw_partial_circle(
                     buffer.set_pixel(x as usize, y as usize, color);
                 }
             }
-            //if coordinates inside square around overlapping circle, check for each pixel individually
+            // if coordinates inside square around overlapping circle, check for each pixel individually
             else if (x * x + x_pos_centre_part * x_pos_centre_part - 2 * x * x_pos_centre_part
                 + y * y + y_pos_centre_part * y_pos_centre_part
                 - 2 * y * y_pos_centre_part > radius_part * radius_part)
@@ -233,6 +233,7 @@ pub fn update_graphics(
     rackets: &mut [racket::Racket; 2],
     ball: &mut ball::Ball,
     menu_font: &mut TextWriter,
+    cache: &mut GraphicsCache,
 ) {
     // TODO: implement
     // send gamestate to racket to let racket move
@@ -242,21 +243,45 @@ pub fn update_graphics(
     // TODO same for ball
 
     ball.update_ball_pos(framebuffer, gamestate.ball);
-    menu_font.write_at(framebuffer, &format!("{}", gamestate.score[0]), 480/2-10-15, 272/2 - 20);
-    menu_font.write_at(framebuffer, &format!("{}", gamestate.score[1]), 480/2+10, 272/2 - 20);
 
-    
-
+    if gamestate.score[0] != cache.score[0] {
+        cache.score[0] = gamestate.score[0];
+        menu_font.write_at(
+            framebuffer,
+            &format!("{}", gamestate.score[0]),
+            480 / 2 - 10 - 15,
+            272 / 2 - 20,
+        );
+    }
+    if gamestate.score[1] != cache.score[1] {
+        cache.score[1] = gamestate.score[1];
+        menu_font.write_at(
+            framebuffer,
+            &format!("{}", gamestate.score[1]),
+            480 / 2 + 10,
+            272 / 2 - 20,
+        );
+    }
 }
 
 pub fn draw_guidelines(framebuffer: &mut Framebuffer) {
-// center guidelines
+    // center guidelines
     for y in 0..272 {
-        framebuffer.set_pixel(480/4, y, 64);
-        framebuffer.set_pixel(480/2, y, 128);
-        framebuffer.set_pixel(480/4*3, y, 64);
+        framebuffer.set_pixel(480 / 4, y, 64);
+        framebuffer.set_pixel(480 / 2, y, 128);
+        framebuffer.set_pixel(480 / 4 * 3, y, 64);
     }
     for x in 0..480 {
-        framebuffer.set_pixel(x, 272/2, 128);
+        framebuffer.set_pixel(x, 272 / 2, 128);
+    }
+}
+
+pub struct GraphicsCache {
+    score: [u8; 2],
+}
+
+impl GraphicsCache {
+    pub fn new() -> GraphicsCache {
+        GraphicsCache { score: [0, 0] }
     }
 }

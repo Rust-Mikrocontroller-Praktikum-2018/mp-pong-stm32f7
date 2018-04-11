@@ -7,7 +7,6 @@
 #![feature(placement_in_syntax)]
 #![allow(dead_code)] // TODO: remove if all features are used to find dead code4
 
-
 extern crate compiler_builtins;
 extern crate r0;
 #[macro_use] // To get the hprintf! macro from semi-hosting
@@ -16,7 +15,7 @@ extern crate stm32f7_discovery as stm32f7;
 extern crate alloc;
 extern crate smoltcp;
 
-
+mod ball;
 mod fps;
 mod game;
 mod graphics;
@@ -26,7 +25,6 @@ mod menu;
 mod network;
 mod physics;
 mod racket;
-mod ball;
 
 use core::mem::discriminant;
 use core::ptr;
@@ -35,10 +33,10 @@ use game::GameState;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use lcd::TextWriter;
+use network::{Client, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
-use network::{Client, Server};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -168,11 +166,11 @@ fn main(hw: board::Hardware) -> ! {
     }
     lcd.swap_buffers();
 
-    /*for i in 0..255 {
-        lcd.clut[i] = (0, i as u8, 0);
-    }
-    lcd.clut[255] = (255, 0, 0);
-    lcd.update_clut();*/
+    // for i in 0..255 {
+    // lcd.clut[i] = (0, i as u8, 0);
+    // }
+    // lcd.clut[255] = (255, 0, 0);
+    // lcd.update_clut();
 
     // set up font renderer
     let mut loading_font = TextWriter::new(TTF, 40.0);
@@ -277,7 +275,12 @@ fn main(hw: board::Hardware) -> ! {
                         ),
                         GameState::ConnectToNetwork => {
                             framebuffer.clear();
-                            loading_font.write_at(&mut framebuffer, "Initializing network...", 0, 0);
+                            loading_font.write_at(
+                                &mut framebuffer,
+                                "Initializing network...",
+                                0,
+                                0,
+                            );
                             framebuffer.swap_buffers();
                             match network.take() {
                                 Some((ethernet_dma, ethernet_mac)) => {
@@ -319,11 +322,19 @@ fn main(hw: board::Hardware) -> ! {
                                 }
                                 None => panic!(),
                             }
-                        },
-                                                GameState::WaitForPartner(mut network) => {
+                        }
+                        GameState::WaitForPartner(mut network) => {
                             if just_entered_state {
-                                
-                                menu_font.write_at(&mut framebuffer, if is_server { "Waiting for client..."} else {"Waiting for server..."}, 0, 50);
+                                menu_font.write_at(
+                                    &mut framebuffer,
+                                    if is_server {
+                                        "Waiting for client..."
+                                    } else {
+                                        "Waiting for server..."
+                                    },
+                                    0,
+                                    50,
+                                );
                             }
 
                             if is_server {
@@ -341,7 +352,7 @@ fn main(hw: board::Hardware) -> ! {
                                     GameState::WaitForPartner(network)
                                 }
                             }
-                        },
+                        }
                         GameState::GameRunningLocal => {
                             game::game_loop_local(
                                 just_entered_state,
@@ -356,7 +367,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut loading_font,
                             );
                             GameState::GameRunningLocal
-                        },
+                        }
                         GameState::GameRunningNetwork(mut network) => {
                             game::game_loop_network(
                                 just_entered_state,
@@ -374,7 +385,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut loading_font,
                             );
                             GameState::GameRunningNetwork(network)
-                        },
+                        }
                     };
 
                     graphics::draw_guidelines(&mut framebuffer);

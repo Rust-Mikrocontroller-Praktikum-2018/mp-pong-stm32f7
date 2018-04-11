@@ -16,7 +16,10 @@ pub struct Touch {
 
 impl Input {
     pub fn new(i2c_3: i2c::I2C) -> Input {
-        Input { i2c_3: i2c_3, touch_last_frame: false }
+        Input {
+            i2c_3: i2c_3,
+            touch_last_frame: false,
+        }
     }
 
     pub fn evaluate_touch_two_players(

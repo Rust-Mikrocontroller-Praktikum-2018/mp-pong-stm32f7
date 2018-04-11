@@ -27,7 +27,6 @@ const LAYER_1_START_2: usize = SDRAM_START + 1024 * 1024 * 1; // move backbuffer
 
 static EMPTY_IMG: &[u8] = include_bytes!("../../res/empty.img");
 
-
 pub struct Lcd {
     controller: &'static mut Ltdc,
     display_enable: OutputPin,
@@ -176,11 +175,11 @@ impl Framebuffer for FramebufferL8 {
 
     fn clear(&mut self) {
         // slow
-        /*for i in 0..HEIGHT {
-            for j in 0..WIDTH {
-                self.set_pixel(j, i, 0);
-            }
-        }*/
+        // for i in 0..HEIGHT {
+        // for j in 0..WIDTH {
+        // self.set_pixel(j, i, 0);
+        // }
+        // }
         let src_start_ptr = &EMPTY_IMG[0] as *const u8;
         self.copy_full(src_start_ptr);
     }
@@ -192,7 +191,7 @@ impl Framebuffer for FramebufferL8 {
             ptr::copy_nonoverlapping(
                 src_start_ptr as *const u32,
                 dest_start_ptr,
-                WIDTH * HEIGHT / 4  // we only store u8 for every pixel
+                WIDTH * HEIGHT / 4, // we only store u8 for every pixel
             );
         }
     }

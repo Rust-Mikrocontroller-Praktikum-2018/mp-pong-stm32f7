@@ -43,41 +43,41 @@ impl GamestatePacket {
             score: [0, 0],
         }
     }
-    /*//Get and Set Functions of Racket
-    pub fn get_racket_ypos(&self, id: usize) -> i16 {
-        self.rackets[id].y
-    }
-    pub fn set_racket_ypos(&mut self, id: usize, new_racket_ypos: i16) {
-        self.rackets[id].y = new_racket_ypos;
-    }
-    //Get and Set Functions of Ball
-    pub fn get_ball(&self) -> BallPacket {
-        self.ball
-    }
-
-    pub fn get_ball_xpos(&self) -> i16 {
-        self.ball.x
-    }
-    pub fn get_ball_ypos(&self) -> i16 {
-        self.ball.y
-    }pub fn get_ball_xvel(&self) -> i16 {
-        self.ball.x_vel
-    }pub fn get_ball_yvel(&self) -> i16 {
-        self.ball.y_vel
-    }
-    pub fn set_ball(&mut self,new_ball: BallPacket) {
-        self.ball = new_ball;
-    }
-    pub fn set_ball_xpos(&mut self,new_ball_xpos: i16) {
-        self.ball.x = new_ball_xpos;
-    }
-    pub fn set_ball_ypos(&mut self,new_ball_ypos: i16) {
-        self.ball.y = new_ball_ypos;
-    }pub fn set_ball_xvel(&mut self,new_ball_xvel: i16) {
-        self.ball.x_vel = new_ball_xvel;
-    }pub fn set_ball_yvel(&mut self,new_ball_yvel: i16) {
-        self.ball.y_vel = new_ball_yvel;
-    }*/
+    // //Get and Set Functions of Racket
+    // pub fn get_racket_ypos(&self, id: usize) -> i16 {
+    // self.rackets[id].y
+    // }
+    // pub fn set_racket_ypos(&mut self, id: usize, new_racket_ypos: i16) {
+    // self.rackets[id].y = new_racket_ypos;
+    // }
+    // Get and Set Functions of Ball
+    // pub fn get_ball(&self) -> BallPacket {
+    // self.ball
+    // }
+    //
+    // pub fn get_ball_xpos(&self) -> i16 {
+    // self.ball.x
+    // }
+    // pub fn get_ball_ypos(&self) -> i16 {
+    // self.ball.y
+    // }pub fn get_ball_xvel(&self) -> i16 {
+    // self.ball.x_vel
+    // }pub fn get_ball_yvel(&self) -> i16 {
+    // self.ball.y_vel
+    // }
+    // pub fn set_ball(&mut self,new_ball: BallPacket) {
+    // self.ball = new_ball;
+    // }
+    // pub fn set_ball_xpos(&mut self,new_ball_xpos: i16) {
+    // self.ball.x = new_ball_xpos;
+    // }
+    // pub fn set_ball_ypos(&mut self,new_ball_ypos: i16) {
+    // self.ball.y = new_ball_ypos;
+    // }pub fn set_ball_xvel(&mut self,new_ball_xvel: i16) {
+    // self.ball.x_vel = new_ball_xvel;
+    // }pub fn set_ball_yvel(&mut self,new_ball_yvel: i16) {
+    // self.ball.y_vel = new_ball_yvel;
+    // }
 }
 
 impl InputPacket {
@@ -89,7 +89,7 @@ impl InputPacket {
 impl WhoamiPacket {
     pub fn new(is_server: bool) -> WhoamiPacket {
         WhoamiPacket {
-            is_server: is_server
+            is_server: is_server,
         }
     }
 }
@@ -220,7 +220,6 @@ impl Serializable for WhoamiPacket {
         1
     }
 }
-
 
 fn upper_byte(input: i16) -> u8 {
     ((input >> 8) & 0xff) as u8

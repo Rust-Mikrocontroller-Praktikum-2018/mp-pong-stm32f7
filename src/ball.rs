@@ -5,25 +5,24 @@ use network;
 use BGCOLOR;
 
 const BALL_COLOR: u8 = 255;
-pub const BALL_RADIUS:u16= 10;
+pub const BALL_RADIUS: u16 = 10;
 
 pub struct Ball {
     xpos_centre: u16,
     ypos_centre: u16,
-    xpos_centre_old:u16,
-    ypos_centre_old:u16,
+    xpos_centre_old: u16,
+    ypos_centre_old: u16,
 }
 
 impl Ball {
     pub fn new() -> Ball {
-        
-            Ball {
-                xpos_centre: 239,
-                ypos_centre: 135,
-                xpos_centre_old:239,
-                ypos_centre_old: 135,
-            }
-        } 
+        Ball {
+            xpos_centre: 239,
+            ypos_centre: 135,
+            xpos_centre_old: 239,
+            ypos_centre_old: 135,
+        }
+    }
 
     // set Centre Point Coordinates
     pub fn set_xpos_centre(&mut self, xpos_centre_set: u16) {
@@ -43,7 +42,7 @@ impl Ball {
     pub fn get_xpos_centre(&self) -> u16 {
         self.xpos_centre
     }
-        pub fn get_xpos_centre_old(&self) -> u16 {
+    pub fn get_xpos_centre_old(&self) -> u16 {
         self.xpos_centre_old
     }
     pub fn get_ypos_centre(&self) -> u16 {
@@ -63,22 +62,20 @@ impl Ball {
         );
     }
 
-    
     pub fn update_ball_pos(
         &mut self,
         framebuffer: &mut lcd::FramebufferL8,
         new_ball: network::BallPacket,
-    )
-    {
+    ) {
         // Remember old state
-        self.xpos_centre_old=self.xpos_centre;
-    self.ypos_centre_old = self.ypos_centre;
+        self.xpos_centre_old = self.xpos_centre;
+        self.ypos_centre_old = self.ypos_centre;
         // Copy Position from Gamestate to self
-        self.xpos_centre= new_ball.x as u16;
+        self.xpos_centre = new_ball.x as u16;
         self.ypos_centre = new_ball.y as u16;
 
         // draw Ball in new Position
-        
+
         // erase old ball
         graphics::draw_partial_circle(
             framebuffer,
@@ -91,7 +88,7 @@ impl Ball {
             BGCOLOR,
         );
         // draw new ball
-            graphics::draw_partial_circle(
+        graphics::draw_partial_circle(
             framebuffer,
             self.xpos_centre.into(),
             self.ypos_centre.into(),
@@ -100,6 +97,6 @@ impl Ball {
             BALL_RADIUS.into(),
             BALL_RADIUS.into(),
             BALL_COLOR,
-        );  
+        );
     }
 }

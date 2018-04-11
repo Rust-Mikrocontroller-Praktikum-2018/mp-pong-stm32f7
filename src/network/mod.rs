@@ -10,8 +10,8 @@ pub use self::packets::BallPacket;
 pub use self::packets::GamestatePacket;
 pub use self::packets::InputPacket;
 pub use self::packets::RacketPacket;
-pub use self::packets::WhoamiPacket;
 use self::packets::Serializable;
+pub use self::packets::WhoamiPacket;
 
 use alloc::Vec;
 use board;
@@ -95,8 +95,8 @@ pub fn init(
         ethernet_addr,
     ).map(|device| device.into_interface(ip_addr));
     if let Err(e) = ethernet_interface {
-        //hprintln!("ethernet init failed: {:?}", e);
-        //return None;
+        // hprintln!("ethernet init failed: {:?}", e);
+        // return None;
         return Err(e);
     }
 
@@ -125,10 +125,9 @@ pub trait Client {
 
 pub trait Server {
     fn receive_input(&mut self, network: &mut Network) -> InputPacket;
-    fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket); 
+    fn send_gamestate(&mut self, network: &mut Network, gamestate: &GamestatePacket);
     fn is_client_connected(&mut self, network: &mut Network) -> bool;
     fn send_whoami(&mut self, network: &mut Network);
-
 }
 
 pub struct EthServer {
@@ -167,7 +166,7 @@ impl Server for EthServer {
                     if data.len() == WhoamiPacket::len() {
                         let whoami = WhoamiPacket::deserialize(&data);
                         if whoami.is_server == false {
-                            return true
+                            return true;
                         }
                     }
                 }
@@ -182,9 +181,7 @@ impl Server for EthServer {
     }
 
     fn send_whoami(&mut self, network: &mut Network) {
-        network.send_udp_packet(&WhoamiPacket{
-            is_server: true,
-        }.serialize())
+        network.send_udp_packet(&WhoamiPacket { is_server: true }.serialize())
     }
 }
 
@@ -223,15 +220,13 @@ impl Client for EthClient {
         }
         self.gamestate
     }
-    
+
     fn is_server_connected(&mut self, network: &mut Network) -> bool {
         let result = network.get_udp_packet();
         match result {
             Ok(value) => match value {
                 Some(data) => {
-                    if data.len() == WhoamiPacket::len() {
-                        
-                    }
+                    if data.len() == WhoamiPacket::len() {}
                     if data.len() == GamestatePacket::len() {
                         return true;
                     }
@@ -247,9 +242,7 @@ impl Client for EthClient {
     }
 
     fn send_whoami(&mut self, network: &mut Network) {
-        network.send_udp_packet(&WhoamiPacket{
-            is_server: false,
-        }.serialize())
+        network.send_udp_packet(&WhoamiPacket { is_server: false }.serialize())
     }
 }
 
