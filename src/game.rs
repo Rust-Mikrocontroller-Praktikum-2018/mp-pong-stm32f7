@@ -24,6 +24,7 @@ pub fn game_loop_local(
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
+    ball:&mut ball::Ball,
     local_input_1: &mut InputPacket,
     local_input_2: &mut InputPacket,
     local_gamestate: &mut GamestatePacket,
@@ -39,7 +40,7 @@ pub fn game_loop_local(
     input::evaluate_touch_two_players(i2c_3, local_input_1, local_input_2);
 
     // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets);
+    graphics::update_graphics(framebuffer, local_gamestate, rackets,ball);
 
     graphics::draw_fps(framebuffer, fps);
 }
@@ -50,6 +51,7 @@ pub fn game_loop_network(
     i2c_3: &mut i2c::I2C,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
+    ball:&mut ball::Ball,
     client: &mut EthClient,
     server: &mut EthServer,
     local_input_1: &mut InputPacket,
@@ -72,7 +74,7 @@ pub fn game_loop_network(
     input::evaluate_touch_one_player(i2c_3, local_input_1);
 
     // move rackets and ball
-    graphics::update_graphics(framebuffer, local_gamestate, rackets);
+    graphics::update_graphics(framebuffer, local_gamestate, rackets,ball);
 
     graphics::draw_fps(framebuffer, fps);
 }
