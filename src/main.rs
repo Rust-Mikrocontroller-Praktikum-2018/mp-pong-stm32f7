@@ -372,6 +372,7 @@ fn main(hw: board::Hardware) -> ! {
                         },
                     };
 
+                    graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
                     unsafe {
