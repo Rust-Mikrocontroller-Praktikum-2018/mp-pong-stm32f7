@@ -23,6 +23,7 @@ mod menu;
 mod network;
 mod physics;
 mod racket;
+mod ball;
 
 use core::mem::discriminant;
 use core::ptr;
@@ -221,6 +222,7 @@ fn main(hw: board::Hardware) -> ! {
 
             // Create Rackets
             let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
+            let mut ball: ball::Ball = ball::Ball::new();
 
             // setup local "network"
             let mut is_server = true; // Server is player 1
@@ -303,9 +305,12 @@ fn main(hw: board::Hardware) -> ! {
                                         Ok(network) => GameState::GameRunningNetwork(network),
                                         Err(e) => {
                                             framebuffer.clear();
-                                            debug_font.write(&mut framebuffer, &format!("Network error: {:?}", e));
-                                            GameState::ChooseOnlyLocal  
-                                        },
+                                            debug_font.write(
+                                                &mut framebuffer,
+                                                &format!("Network error: {:?}", e),
+                                            );
+                                            GameState::ChooseOnlyLocal
+                                        }
                                     }
                                 }
                                 None => panic!(),
@@ -318,6 +323,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut input,
                                 &fps,
                                 &mut rackets,
+                                &mut ball,
                                 &mut local_input_1,
                                 &mut local_input_2,
                                 &mut server_gamestate,
@@ -331,6 +337,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut input,
                                 &fps,
                                 &mut rackets,
+                                &mut ball,
                                 &mut client,
                                 &mut server,
                                 &mut local_input_1,

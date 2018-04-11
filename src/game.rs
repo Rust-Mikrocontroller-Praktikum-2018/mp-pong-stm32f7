@@ -6,6 +6,7 @@ use lcd::FramebufferL8;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
 use physics;
 use racket;
+use ball;
 
 pub enum GameState {
     Splash,
@@ -30,7 +31,7 @@ pub fn game_loop_local(
 ) {
     if just_entered_state {
         framebuffer.clear();
-        graphics::draw_initial(framebuffer, rackets);
+        graphics::draw_initial(framebuffer, rackets,ball);
     }
 
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
@@ -60,7 +61,7 @@ pub fn game_loop_network(
 ) {
     if just_entered_state {
         framebuffer.clear();
-        graphics::draw_initial(framebuffer, rackets);
+        graphics::draw_initial(framebuffer, rackets,ball);
     }
 
     if is_server {
