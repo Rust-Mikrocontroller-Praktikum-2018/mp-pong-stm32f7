@@ -282,6 +282,6 @@ pub struct GraphicsCache {
 
 impl GraphicsCache {
     pub fn new() -> GraphicsCache {
-        GraphicsCache { score: [0, 0] }
+        GraphicsCache { score: [99, 99] }
     }
 }

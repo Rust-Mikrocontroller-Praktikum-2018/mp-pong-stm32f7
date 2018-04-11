@@ -37,6 +37,7 @@ use network::{Client, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
+use graphics::GraphicsCache;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -237,6 +238,7 @@ fn main(hw: board::Hardware) -> ! {
             let mut local_input_2 = network::InputPacket::new();
 
             let mut input = input::Input::new(i2c_3);
+            let mut cache = GraphicsCache::new();
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -365,6 +367,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut local_input_2,
                                 &mut server_gamestate,
                                 &mut loading_font,
+                                &mut cache,
                             );
                             GameState::GameRunningLocal
                         }
@@ -383,6 +386,7 @@ fn main(hw: board::Hardware) -> ! {
                                 is_server,
                                 &mut network,
                                 &mut loading_font,
+                                &mut cache,
                             );
                             GameState::GameRunningNetwork(network)
                         }

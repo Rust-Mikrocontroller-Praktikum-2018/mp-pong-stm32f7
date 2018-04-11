@@ -1,4 +1,6 @@
 use alloc::Vec;
+use lcd::{WIDTH, HEIGHT};
+use racket::RACKET_WIDTH;
 
 #[derive(Debug, Copy, Clone)]
 pub struct GamestatePacket {
@@ -31,14 +33,14 @@ impl GamestatePacket {
     pub fn new() -> GamestatePacket {
         GamestatePacket {
             rackets: [
-                RacketPacket { x: 0, y: 100 },
-                RacketPacket { x: 400, y: 100 },
+                RacketPacket { x: RACKET_WIDTH as i16, y: (HEIGHT/2)  as i16},
+                RacketPacket { x: WIDTH as i16 - RACKET_WIDTH as i16, y: (HEIGHT/2)  as i16},
             ],
             ball: BallPacket {
-                x: 200,
-                y: 100,
-                x_vel: 1,
-                y_vel: 1,
+                x: (WIDTH/2) as i16,
+                y: (HEIGHT/2) as i16,
+                x_vel: 2,
+                y_vel: 2,
             },
             score: [0, 0],
         }
