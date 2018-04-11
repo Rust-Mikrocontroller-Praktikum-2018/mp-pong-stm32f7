@@ -245,14 +245,18 @@ pub fn update_graphics(
     menu_font.write_at(framebuffer, &format!("{}", gamestate.score[0]), 480/2-10-15, 272/2 - 20);
     menu_font.write_at(framebuffer, &format!("{}", gamestate.score[1]), 480/2+10, 272/2 - 20);
 
-    // center guidelines
-    /*
+    
+
+}
+
+pub fn draw_guidelines(framebuffer: &mut Framebuffer) {
+// center guidelines
     for y in 0..272 {
+        framebuffer.set_pixel(480/4, y, 64);
         framebuffer.set_pixel(480/2, y, 128);
+        framebuffer.set_pixel(480/4*3, y, 64);
     }
     for x in 0..480 {
         framebuffer.set_pixel(x, 272/2, 128);
     }
-    */
-
 }

@@ -377,6 +377,7 @@ fn main(hw: board::Hardware) -> ! {
                         },
                     };
 
+                    graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
