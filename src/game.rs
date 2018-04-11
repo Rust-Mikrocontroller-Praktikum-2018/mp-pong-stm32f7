@@ -1,8 +1,8 @@
 use fps;
 use graphics;
-use input;
-use lcd::FramebufferL8;
+use input::Input;
 use lcd::Framebuffer;
+use lcd::FramebufferL8;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
 use physics;
 use racket;
@@ -20,7 +20,7 @@ pub enum GameState {
 pub fn game_loop_local(
     just_entered_state: bool,
     framebuffer: &mut FramebufferL8,
-    i2c_3: &mut i2c::I2C,
+    input: &mut Input,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
     local_input_1: &mut InputPacket,
@@ -35,7 +35,7 @@ pub fn game_loop_local(
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
 
     // handle input
-    input::evaluate_touch_two_players(i2c_3, local_input_1, local_input_2);
+    input.evaluate_touch_two_players(local_input_1, local_input_2);
 
     // move rackets and ball
     graphics::update_graphics(framebuffer, local_gamestate, rackets);
@@ -44,9 +44,9 @@ pub fn game_loop_local(
 }
 
 pub fn game_loop_network(
-    just_entered_state: bool, 
+    just_entered_state: bool,
     framebuffer: &mut FramebufferL8,
-    i2c_3: &mut i2c::I2C,
+    input: &mut Input,
     fps: &fps::FpsCounter,
     rackets: &mut [racket::Racket; 2],
     client: &mut EthClient,
@@ -68,7 +68,7 @@ pub fn game_loop_network(
     }
 
     // handle input
-    input::evaluate_touch_one_player(i2c_3, local_input_1);
+    input.evaluate_touch_one_player(local_input_1);
 
     // move rackets and ball
     graphics::update_graphics(framebuffer, local_gamestate, rackets);

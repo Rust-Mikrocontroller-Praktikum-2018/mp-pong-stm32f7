@@ -24,6 +24,7 @@ mod network;
 mod physics;
 mod racket;
 
+use core::mem::discriminant;
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
 use game::GameState;
@@ -32,7 +33,6 @@ use lcd::FramebufferL8;
 use lcd::TextWriter;
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
-use core::mem::discriminant;
 use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
 
 const USE_DOUBLE_BUFFER: bool = true;
@@ -187,7 +187,7 @@ fn main(hw: board::Hardware) -> ! {
     let mut network = Some((ethernet_dma, ethernet_mac));
 
     let mut gamestate = GameState::Splash;
-    let mut previous_gamestate = core::mem::discriminant(&gamestate);
+    let mut previous_gamestate = core::mem::discriminant(&gamestate); // Get the descriminant to be able to compare this
 
     interrupts::scope(
         nvic,
@@ -223,7 +223,7 @@ fn main(hw: board::Hardware) -> ! {
             let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
 
             // setup local "network"
-            let is_server = true; // Server is player 1
+            let mut is_server = true; // Server is player 1
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
@@ -231,6 +231,8 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();
+
+            let mut input = input::Input::new(i2c_3);
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -252,35 +254,50 @@ fn main(hw: board::Hardware) -> ! {
                             just_entered_state,
                             &mut framebuffer,
                             &mut menu_font,
-                            &mut i2c_3,
+                            &mut input,
                         ),
-                        GameState::ChooseClientOrServer => {
-/*                            if just_entered_state {
-                                debug_font.write(
-                                    &mut framebuffer,
-                                    "Choose client or server not yet implemented.",
-                                );
-                            }*/
-                            GameState::ConnectToNetwork
-                        }
+                        GameState::ChooseClientOrServer => menu::choose_client_server(
+                            just_entered_state,
+                            &mut framebuffer,
+                            &mut menu_font,
+                            &mut input,
+                            &mut is_server,
+                        ),
                         GameState::ConnectToNetwork => {
+                            framebuffer.clear();
+                            loading_font.write(&mut framebuffer, "Initializing network...");
+                            framebuffer.swap_buffers();
                             match network.take() {
                                 Some((ethernet_dma, ethernet_mac)) => {
-                                    let network_option = network::init(
-                                        rcc,
-                                        syscfg,
-                                        ethernet_mac,
-                                        ethernet_dma,
-                                        &mut gpio,
-                                        CLIENT_ETH_ADDR,
-                                        CLIENT_IP_ADDR,
-                                        SERVER_IP_ADDR,
-                                    );
+                                    let network_option = if is_server {
+                                        network::init(
+                                            rcc,
+                                            syscfg,
+                                            ethernet_mac,
+                                            ethernet_dma,
+                                            &mut gpio,
+                                            SERVER_ETH_ADDR,
+                                            SERVER_IP_ADDR,
+                                            CLIENT_IP_ADDR,
+                                        )
+                                    } else {
+                                        network::init(
+                                            rcc,
+                                            syscfg,
+                                            ethernet_mac,
+                                            ethernet_dma,
+                                            &mut gpio,
+                                            CLIENT_ETH_ADDR,
+                                            CLIENT_IP_ADDR,
+                                            SERVER_IP_ADDR,
+                                        )
+                                    };
+
                                     match network_option {
                                         Some(network) => GameState::GameRunningNetwork(network),
                                         None => GameState::ChooseLocalOrNetwork,
                                     }
-                                },
+                                }
                                 None => panic!(),
                             }
                         }
@@ -288,7 +305,7 @@ fn main(hw: board::Hardware) -> ! {
                             game::game_loop_local(
                                 just_entered_state,
                                 &mut framebuffer,
-                                &mut i2c_3,
+                                &mut input,
                                 &fps,
                                 &mut rackets,
                                 &mut local_input_1,
@@ -301,7 +318,7 @@ fn main(hw: board::Hardware) -> ! {
                             game::game_loop_network(
                                 just_entered_state,
                                 &mut framebuffer,
-                                &mut i2c_3,
+                                &mut input,
                                 &fps,
                                 &mut rackets,
                                 &mut client,
