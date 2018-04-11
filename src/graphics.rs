@@ -2,6 +2,7 @@ use ball;
 use fps;
 use lcd;
 use lcd::Framebuffer;
+use lcd::TextWriter;
 use network;
 use racket;
 
@@ -231,6 +232,7 @@ pub fn update_graphics(
     gamestate: &network::GamestatePacket,
     rackets: &mut [racket::Racket; 2],
     ball: &mut ball::Ball,
+    menu_font: &mut TextWriter,
 ) {
     // TODO: implement
     // send gamestate to racket to let racket move
@@ -238,5 +240,18 @@ pub fn update_graphics(
         rackets[id].update_racket_pos(framebuffer, gamestate.get_racket_ypos(id) as u16);
     }
     // TODO same for ball
-    ball.update_ball_pos(framebuffer, gamestate.get_ball())
+    ball.update_ball_pos(framebuffer, gamestate.get_ball());
+
+    menu_font.write_at(framebuffer, &format!("{}", gamestate.score[0]), 480/2-10-15, 272/2 - 20);
+    menu_font.write_at(framebuffer, &format!("{}", gamestate.score[1]), 480/2+10, 272/2 - 20);
+
+    // center guidelines
+    /*
+    for y in 0..272 {
+        framebuffer.set_pixel(480/2, y, 128);
+    }
+    for x in 0..480 {
+        framebuffer.set_pixel(x, 272/2, 128);
+    }
+    */
 }
