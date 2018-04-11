@@ -24,6 +24,7 @@ mod network;
 mod physics;
 mod racket;
 
+use core::mem::discriminant;
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
 use game::GameState;
@@ -170,10 +171,7 @@ fn main(hw: board::Hardware) -> ! {
 
     // set up font renderer
     let mut loading_font = TextWriter::new(TTF, 40.0);
-    loading_font.write(
-        &mut framebuffer,
-        "loading...",
-    );
+    loading_font.write(&mut framebuffer, "loading...");
 
     let mut menu_font = TextWriter::new(TTF, 20.0);
     let mut debug_font = TextWriter::new(TTF, 20.0);
@@ -186,26 +184,17 @@ fn main(hw: board::Hardware) -> ! {
     let mut i2c_3 = i2c::init(i2c_3);
     touch::check_family_id(&mut i2c_3).unwrap();
 
-    let mut network = network::init(
-        rcc,
-        syscfg,
-        ethernet_mac,
-        ethernet_dma,
-        &mut gpio,
-        CLIENT_ETH_ADDR,
-        CLIENT_IP_ADDR,
-        SERVER_IP_ADDR,
-    ); // TODO: error handling
+    let mut network = Some((ethernet_dma, ethernet_mac));
 
     let mut gamestate = GameState::Splash;
-    let mut previous_gamestate = GameState::Splash;
+    let mut previous_gamestate = core::mem::discriminant(&gamestate); // Get the descriminant to be able to compare this
 
     interrupts::scope(
         nvic,
         |_| {},
         move |interrupt_table| {
-            let should_draw_now = false;
-            let should_draw_now_ptr = (&should_draw_now as *const bool) as usize;
+            let mut should_draw_now = false;
+            let should_draw_now_ptr = &mut should_draw_now as *mut bool as usize;
 
             let _interrupt_handler = interrupt_table
                 .register(
@@ -234,7 +223,7 @@ fn main(hw: board::Hardware) -> ! {
             let mut rackets: [racket::Racket; 2] = [racket::Racket::new(0), racket::Racket::new(1)];
 
             // setup local "network"
-            let is_server = false; // Server is player 1
+            let mut is_server = true; // Server is player 1
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
@@ -242,6 +231,8 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();
+
+            let mut input = input::Input::new(i2c_3);
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -254,8 +245,8 @@ fn main(hw: board::Hardware) -> ! {
                         framebuffer.swap_buffers();
                     }
 
-                    let just_entered_state = !(previous_gamestate == gamestate);
-                    previous_gamestate = gamestate.clone();
+                    let just_entered_state = !(previous_gamestate == discriminant(&gamestate));
+                    previous_gamestate = discriminant(&gamestate);
 
                     gamestate = match gamestate {
                         GameState::Splash => GameState::ChooseLocalOrNetwork,
@@ -263,20 +254,68 @@ fn main(hw: board::Hardware) -> ! {
                             just_entered_state,
                             &mut framebuffer,
                             &mut menu_font,
-                            &mut i2c_3,
+                            &mut input,
                         ),
-                        GameState::ChooseClientOrServer => {
-                            if just_entered_state {
-                                debug_font.write(&mut framebuffer, "Choose client or server not yet implemented.");
+                        GameState::ChooseClientOrServer => menu::choose_client_server(
+                            just_entered_state,
+                            &mut framebuffer,
+                            &mut menu_font,
+                            &mut input,
+                            &mut is_server,
+                        ),
+                        GameState::ChooseOnlyLocal => menu::choose_only_local(
+                            just_entered_state,
+                            &mut framebuffer,
+                            &mut menu_font,
+                            &mut input,
+                        ),
+                        GameState::ConnectToNetwork => {
+                            framebuffer.clear();
+                            loading_font.write(&mut framebuffer, "Initializing network...");
+                            framebuffer.swap_buffers();
+                            match network.take() {
+                                Some((ethernet_dma, ethernet_mac)) => {
+                                    let network_option = if is_server {
+                                        network::init(
+                                            rcc,
+                                            syscfg,
+                                            ethernet_mac,
+                                            ethernet_dma,
+                                            &mut gpio,
+                                            SERVER_ETH_ADDR,
+                                            SERVER_IP_ADDR,
+                                            CLIENT_IP_ADDR,
+                                        )
+                                    } else {
+                                        network::init(
+                                            rcc,
+                                            syscfg,
+                                            ethernet_mac,
+                                            ethernet_dma,
+                                            &mut gpio,
+                                            CLIENT_ETH_ADDR,
+                                            CLIENT_IP_ADDR,
+                                            SERVER_IP_ADDR,
+                                        )
+                                    };
+
+                                    match network_option {
+                                        Ok(network) => GameState::GameRunningNetwork(network),
+                                        Err(e) => {
+                                            framebuffer.clear();
+                                            debug_font.write(&mut framebuffer, &format!("Network error: {:?}", e));
+                                            GameState::ChooseOnlyLocal  
+                                        },
+                                    }
+                                }
+                                None => panic!(),
                             }
-                            GameState::ChooseClientOrServer
-                        },
-                        GameState::ConnectToNetwork => GameState::ConnectToNetwork,
+                        }
                         GameState::GameRunningLocal => {
                             game::game_loop_local(
                                 just_entered_state,
                                 &mut framebuffer,
-                                &mut i2c_3,
+                                &mut input,
                                 &fps,
                                 &mut rackets,
                                 &mut local_input_1,
@@ -285,11 +324,11 @@ fn main(hw: board::Hardware) -> ! {
                             );
                             GameState::GameRunningLocal
                         }
-                        GameState::GameRunningNetwork => {
+                        GameState::GameRunningNetwork(mut network) => {
                             game::game_loop_network(
                                 just_entered_state,
                                 &mut framebuffer,
-                                &mut i2c_3,
+                                &mut input,
                                 &fps,
                                 &mut rackets,
                                 &mut client,
@@ -297,9 +336,9 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut local_input_1,
                                 &mut server_gamestate,
                                 is_server,
-                                network.as_mut().unwrap(),
+                                &mut network,
                             );
-                            GameState::GameRunningNetwork
+                            GameState::GameRunningNetwork(network)
                         }
                     };
 
