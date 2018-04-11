@@ -4,7 +4,9 @@
 #![feature(alloc)]
 #![cfg_attr(feature = "cargo-clippy", warn(clippy))]
 #![feature(const_fn)]
+#![feature(placement_in_syntax)]
 #![allow(dead_code)] // TODO: remove if all features are used to find dead code4
+
 
 extern crate compiler_builtins;
 extern crate r0;
@@ -13,6 +15,7 @@ extern crate stm32f7_discovery as stm32f7;
 #[macro_use]
 extern crate alloc;
 extern crate smoltcp;
+
 
 mod fps;
 mod game;

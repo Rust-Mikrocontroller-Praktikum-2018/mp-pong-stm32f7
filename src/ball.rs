@@ -5,7 +5,7 @@ use network;
 use BGCOLOR;
 
 const BALL_COLOR: u8 = 255;
-const BALL_RADIUS:u16= 10;
+pub const BALL_RADIUS:u16= 10;
 
 pub struct Ball {
     xpos_centre: u16,

@@ -5,7 +5,7 @@ use graphics;
 use lcd;
 
 // general Racket Properties
-const RACKET_WIDTH: u16 = 10;
+pub const RACKET_WIDTH: u16 = 10;
 pub const RACKET_HEIGHT: u16 = 30;
 const RACKET_COLOR: u8 = 150;
 

@@ -43,7 +43,7 @@ impl GamestatePacket {
             score: [0, 0],
         }
     }
-    //Get and Set Functions of Racket
+    /*//Get and Set Functions of Racket
     pub fn get_racket_ypos(&self, id: usize) -> i16 {
         self.rackets[id].y
     }
@@ -77,7 +77,7 @@ impl GamestatePacket {
         self.ball.x_vel = new_ball_xvel;
     }pub fn set_ball_yvel(&mut self,new_ball_yvel: i16) {
         self.ball.y_vel = new_ball_yvel;
-    }
+    }*/
 }
 
 impl InputPacket {

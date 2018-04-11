@@ -235,8 +235,8 @@ pub fn update_graphics(
     // TODO: implement
     // send gamestate to racket to let racket move
     for id in 0..2 {
-        rackets[id].update_racket_pos(framebuffer, gamestate.get_racket_ypos(id) as u16);
+        rackets[id].update_racket_pos(framebuffer, gamestate.rackets[id].y as u16);
     }
     // TODO same for ball
-    ball.update_ball_pos(framebuffer, gamestate.get_ball())
+    ball.update_ball_pos(framebuffer, gamestate.ball)
 }
