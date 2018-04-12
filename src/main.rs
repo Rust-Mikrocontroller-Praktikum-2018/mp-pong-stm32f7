@@ -348,8 +348,6 @@ fn main(hw: board::Hardware) -> ! {
                                     50,
                                 );
                             }
-                            hprint!(".");
-
 
                             if is_server {
                                 // server.send_whoami(&mut network);
