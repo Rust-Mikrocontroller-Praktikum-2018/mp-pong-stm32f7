@@ -1,6 +1,10 @@
 use alloc::Vec;
-use lcd::{WIDTH, HEIGHT};
+use lcd::{HEIGHT, WIDTH};
 use racket::RACKET_WIDTH;
+use stm32f7::system_clock::ticks;
+
+const BALL_MAX_SPEED: i16 = 20;
+const BALL_MIN_SPEED: i16 = 10;
 
 #[derive(Debug, Copy, Clone)]
 pub struct GamestatePacket {
@@ -33,53 +37,32 @@ impl GamestatePacket {
     pub fn new() -> GamestatePacket {
         GamestatePacket {
             rackets: [
-                RacketPacket { x: RACKET_WIDTH as i16, y: (HEIGHT/2)  as i16},
-                RacketPacket { x: WIDTH as i16 - RACKET_WIDTH as i16, y: (HEIGHT/2)  as i16},
+                RacketPacket {
+                    x: RACKET_WIDTH as i16,
+                    y: (HEIGHT / 2) as i16,
+                },
+                RacketPacket {
+                    x: WIDTH as i16 - RACKET_WIDTH as i16,
+                    y: (HEIGHT / 2) as i16,
+                },
             ],
             ball: BallPacket {
-                x: (WIDTH/2) as i16,
-                y: (HEIGHT/2) as i16,
-                x_vel: 2,
-                y_vel: 2,
+                x: (WIDTH / 2) as i16,
+                y: (HEIGHT / 2) as i16,
+                x_vel: random_vel()[0],
+                y_vel: random_vel()[1],
             },
             score: [0, 0],
         }
     }
-    // //Get and Set Functions of Racket
-    // pub fn get_racket_ypos(&self, id: usize) -> i16 {
-    // self.rackets[id].y
-    // }
-    // pub fn set_racket_ypos(&mut self, id: usize, new_racket_ypos: i16) {
-    // self.rackets[id].y = new_racket_ypos;
-    // }
-    // Get and Set Functions of Ball
-    // pub fn get_ball(&self) -> BallPacket {
-    // self.ball
-    // }
-    //
-    // pub fn get_ball_xpos(&self) -> i16 {
-    // self.ball.x
-    // }
-    // pub fn get_ball_ypos(&self) -> i16 {
-    // self.ball.y
-    // }pub fn get_ball_xvel(&self) -> i16 {
-    // self.ball.x_vel
-    // }pub fn get_ball_yvel(&self) -> i16 {
-    // self.ball.y_vel
-    // }
-    // pub fn set_ball(&mut self,new_ball: BallPacket) {
-    // self.ball = new_ball;
-    // }
-    // pub fn set_ball_xpos(&mut self,new_ball_xpos: i16) {
-    // self.ball.x = new_ball_xpos;
-    // }
-    // pub fn set_ball_ypos(&mut self,new_ball_ypos: i16) {
-    // self.ball.y = new_ball_ypos;
-    // }pub fn set_ball_xvel(&mut self,new_ball_xvel: i16) {
-    // self.ball.x_vel = new_ball_xvel;
-    // }pub fn set_ball_yvel(&mut self,new_ball_yvel: i16) {
-    // self.ball.y_vel = new_ball_yvel;
-    // }
+}
+impl BallPacket {
+    pub fn reset(&mut self) {
+        self.x = (WIDTH / 2) as i16;
+        self.y = (HEIGHT / 2) as i16;
+        self.x_vel = random_vel()[0];
+        self.y_vel = random_vel()[1];
+    }
 }
 
 impl InputPacket {
@@ -232,4 +215,18 @@ fn lower_byte(input: i16) -> u8 {
 
 fn merge(upper: u8, lower: u8) -> i16 {
     i16::from(upper) << 8 | i16::from(lower)
+}
+fn random_vel() -> [i16; 2] {
+    let mut random_x_vel;
+    let mut random_y_vel;
+    let mut random_ball_vel_square;
+
+    while {
+        random_x_vel = ticks() as i16;
+        random_y_vel = ticks() as i16;
+        random_ball_vel_square = random_x_vel * random_x_vel + random_y_vel * random_y_vel;
+        (random_ball_vel_square > BALL_MAX_SPEED * BALL_MAX_SPEED)
+            || (random_ball_vel_square < BALL_MIN_SPEED * BALL_MIN_SPEED)
+    } {}
+    [random_x_vel, random_y_vel]
 }

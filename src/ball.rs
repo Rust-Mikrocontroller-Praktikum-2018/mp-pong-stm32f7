@@ -51,6 +51,7 @@ impl Ball {
     pub fn get_ypos_centre_old(&self) -> u16 {
         self.ypos_centre_old
     }
+    
 
     pub fn draw_ball(&self, buffer: &mut lcd::FramebufferL8) {
         graphics::draw_circle(
