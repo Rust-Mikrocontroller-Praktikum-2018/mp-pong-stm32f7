@@ -11,9 +11,9 @@ use network::packets::STATE_WON_PLAYER_1;
 use network::packets::STATE_WON_PLAYER_2;
 
 
-const SCORE_1_X: usize = 480 / 2 - 10 - 15;
+const SCORE_1_X: usize = 480 / 2 - 20 - 15;
 const SCORE_1_Y: usize = 272 - 50;
-const SCORE_2_X: usize = 480 / 2 + 10;
+const SCORE_2_X: usize = 480 / 2 + 20;
 const SCORE_2_Y: usize = 272 - 50;
 const SCORE_REDRAW_TIME: usize = 800;
 

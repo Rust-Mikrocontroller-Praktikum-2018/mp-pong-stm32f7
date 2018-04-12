@@ -36,6 +36,7 @@ use network::{Client, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
 use stm32f7::{board, embedded, ethernet, i2c, interrupts, sdram, system_clock, touch};
+use physics::PhysicsCache;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -228,6 +229,7 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut input = input::Input::new(i2c_3);
             let mut cache = GraphicsCache::new();
+            let mut physics_cache = PhysicsCache::new();
 
             let start_time = system_clock::ticks();
             let mut last_time = start_time;
@@ -373,6 +375,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut cache,
                                 total_time,
                                 delta_time,
+                                &mut physics_cache,
                             );
                             GameState::GameRunningLocal
                         }
@@ -394,12 +397,13 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut cache,
                                 total_time,
                                 delta_time,
+                                &mut physics_cache,
                             );
                             GameState::GameRunningNetwork(network)
                         }
                     };
 
-                    graphics::draw_guidelines(&mut framebuffer);
+                    // graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();

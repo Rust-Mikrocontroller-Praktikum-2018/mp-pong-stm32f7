@@ -10,6 +10,7 @@ use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Networ
 use physics;
 use racket;
 use network::packets::STATE_WON_PLAYER_1;
+use physics::PhysicsCache;
 
 pub enum GameState {
     Splash,
@@ -36,19 +37,23 @@ pub fn game_loop_local(
     cache: &mut GraphicsCache,
     total_time: usize,
     delta_time: usize,
+    physics_cache: &mut PhysicsCache,
 ) {
     if just_entered_state {
         framebuffer.clear();
         graphics::draw_initial(framebuffer, rackets, ball);
     }
 
-    handle_local_calculations(local_gamestate, local_input_1, local_input_2, total_time);
+    handle_local_calculations(local_gamestate, local_input_1, local_input_2, total_time, physics_cache);
 
     // handle input
     if local_gamestate.state >= STATE_WON_PLAYER_1 {
         let touch = input.handle_menu();
         if touch.is_down && !touch.any_touch_last_frame {
             *local_gamestate = GamestatePacket::new(total_time);
+            *physics_cache = PhysicsCache::new();
+            *local_input_1 = InputPacket::new();
+            *local_input_2 = InputPacket::new();
         }
     } else {
         input.evaluate_touch_two_players(local_input_1, local_input_2);
@@ -86,6 +91,7 @@ pub fn game_loop_network(
     cache: &mut GraphicsCache,
     total_time: usize,
     delta_time: usize,
+    physics_cache: &mut PhysicsCache,
 ) {
     if just_entered_state {
         framebuffer.clear();
@@ -93,7 +99,7 @@ pub fn game_loop_network(
     }
 
     if is_server {
-        handle_network_server(server, network, local_gamestate, local_input_1, total_time);
+        handle_network_server(server, network, local_gamestate, local_input_1, total_time, physics_cache);
     } else {
         handle_network_client(client, network, local_gamestate, local_input_1);
     }
@@ -103,6 +109,8 @@ pub fn game_loop_network(
         let touch = input.handle_menu();
         if touch.is_down && !touch.any_touch_last_frame {
             *local_gamestate = GamestatePacket::new(total_time);
+            *physics_cache = PhysicsCache::new();
+            *local_input_1 = InputPacket::new();
         }
     } else {
         // handle input
@@ -128,9 +136,10 @@ fn handle_local_calculations(
     local_input_1: &InputPacket,
     local_input_2: &InputPacket,
     total_time: usize,
+    physics_cache: &mut PhysicsCache,
 ) {
     let inputs = [*local_input_1, *local_input_2];
-    physics::calculate_physics(local_gamestate, inputs, total_time);
+    physics::calculate_physics(local_gamestate, inputs, total_time, physics_cache);
 }
 
 fn handle_network_server(
@@ -139,9 +148,10 @@ fn handle_network_server(
     local_gamestate: &mut GamestatePacket,
     local_input_1: &InputPacket,
     total_time: usize,
+    physics_cache: &mut PhysicsCache,
 ) {
     let inputs = [*local_input_1, server.receive_input(network)];
-    physics::calculate_physics(local_gamestate, inputs, total_time);
+    physics::calculate_physics(local_gamestate, inputs, total_time, physics_cache);
     server.send_gamestate(network, local_gamestate);
 }
 
