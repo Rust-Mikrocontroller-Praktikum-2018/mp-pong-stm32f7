@@ -77,13 +77,13 @@ pub fn calculate_physics(
         if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
             if server_gamestate.score[1] >= 9 {
-                server_gamestate.state = 254;
+                server_gamestate.state = 255;
             }
         }
         if x_pos_new >= 479 - ball_radius {
             server_gamestate.score[0] += 1;
             if server_gamestate.score[0] >= 9 {
-                server_gamestate.state = 255;
+                server_gamestate.state = 254;
             }
         }
         ball.reset();

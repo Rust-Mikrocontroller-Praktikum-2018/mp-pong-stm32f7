@@ -5,6 +5,7 @@ use lcd::Framebuffer;
 use lcd::TextWriter;
 use network;
 use racket;
+use PADDING;
 
 const SCORE_1_X: usize = 480 / 2 - 10 - 15;
 const SCORE_1_Y: usize = 272 - 50;
@@ -247,15 +248,16 @@ pub fn update_graphics(
     if gamestate.state != 0 {
         if cache.last_state != gamestate.state {
             if gamestate.state == 254 {
-                menu_font.write_at(framebuffer, "Player 1 wins", 0, 0);
+                menu_font.write_at(framebuffer, "Player 1 wins", PADDING, PADDING);
             } else if gamestate.state == 255 {
-                menu_font.write_at(framebuffer, "Player 2 wins", 0, 0);
+                menu_font.write_at(framebuffer, "Player 2 wins", PADDING, PADDING);
             }
             cache.last_state = gamestate.state;
         }
     } else if cache.last_state != 0 {
         cache.last_state = 0;
         framebuffer.clear();
+        *cache = GraphicsCache::new();
         draw_initial(framebuffer, rackets, ball);
         // TODO: redraw
     }
