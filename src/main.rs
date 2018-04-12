@@ -193,6 +193,8 @@ fn main(hw: board::Hardware) -> ! {
     let mut gamestate = GameState::Splash;
     let mut previous_gamestate = core::mem::discriminant(&gamestate); // Get the descriminant to be able to compare this
 
+
+
     interrupts::scope(
         nvic,
         |_| {},
@@ -239,6 +241,9 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut input = input::Input::new(i2c_3);
             let mut cache = GraphicsCache::new();
+            
+            let start_time = system_clock::ticks();
+            let mut last_time = start_time;
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -250,6 +255,11 @@ fn main(hw: board::Hardware) -> ! {
                     if USE_DOUBLE_BUFFER {
                         framebuffer.swap_buffers();
                     }
+                    // calculate times
+                    let now = system_clock::ticks();
+                    let total_time = now - start_time;
+                    let delta_time = last_time - now;
+                    last_time = now;
 
                     let just_entered_state = !(previous_gamestate == discriminant(&gamestate));
                     previous_gamestate = discriminant(&gamestate);
@@ -368,6 +378,8 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut server_gamestate,
                                 &mut loading_font,
                                 &mut cache,
+                                total_time,
+                                delta_time,
                             );
                             GameState::GameRunningLocal
                         }
@@ -387,12 +399,14 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut network,
                                 &mut loading_font,
                                 &mut cache,
+                                total_time,
+                                delta_time,
                             );
                             GameState::GameRunningNetwork(network)
                         }
                     };
 
-                    graphics::draw_guidelines(&mut framebuffer);
+                    // graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
