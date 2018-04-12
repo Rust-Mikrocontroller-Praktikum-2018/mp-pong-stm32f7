@@ -13,7 +13,6 @@ extern crate stm32f7_discovery as stm32f7;
 extern crate alloc;
 extern crate smoltcp;
 
-
 mod ball;
 mod fps;
 mod game;
@@ -29,14 +28,15 @@ use core::mem::discriminant;
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
 use game::GameState;
+use graphics::GraphicsCache;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use lcd::TextWriter;
 use network::{Client, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
-use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
-use graphics::GraphicsCache;
+use stm32f7::{board, embedded, ethernet, i2c, interrupts, sdram, system_clock, touch};
+use physics::PhysicsCache;
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -117,17 +117,7 @@ fn main(hw: board::Hardware) -> ! {
     } = hw;
 
     let mut gpio = Gpio::new(
-        gpio_a,
-        gpio_b,
-        gpio_c,
-        gpio_d,
-        gpio_e,
-        gpio_f,
-        gpio_g,
-        gpio_h,
-        gpio_i,
-        gpio_j,
-        gpio_k,
+        gpio_a, gpio_b, gpio_c, gpio_d, gpio_e, gpio_f, gpio_g, gpio_h, gpio_i, gpio_j, gpio_k,
     );
 
     system_clock::init(rcc, pwr, flash);
@@ -193,8 +183,6 @@ fn main(hw: board::Hardware) -> ! {
     let mut gamestate = GameState::Splash;
     let mut previous_gamestate = core::mem::discriminant(&gamestate); // Get the descriminant to be able to compare this
 
-
-
     interrupts::scope(
         nvic,
         |_| {},
@@ -234,16 +222,18 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
-            let mut server_gamestate = network::GamestatePacket::new();
+            let mut server_gamestate = network::GamestatePacket::new(system_clock::ticks());
 
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();
 
             let mut input = input::Input::new(i2c_3);
             let mut cache = GraphicsCache::new();
-            
+            let mut physics_cache = PhysicsCache::new();
+
             let start_time = system_clock::ticks();
             let mut last_time = start_time;
+            let mut client_whoami_time = 0;
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -257,8 +247,8 @@ fn main(hw: board::Hardware) -> ! {
                     }
                     // calculate times
                     let now = system_clock::ticks();
-                    let total_time = now - start_time;
-                    let delta_time = last_time - now;
+                    let total_time = (now as i32 - start_time as i32) as usize;
+                    let delta_time = (last_time as i32 - now as i32) as usize;
                     last_time = now;
 
                     let just_entered_state = !(previous_gamestate == discriminant(&gamestate));
@@ -342,22 +332,27 @@ fn main(hw: board::Hardware) -> ! {
                                     if is_server {
                                         "Waiting for client..."
                                     } else {
-                                        "Waiting for server..."
+                                        "Server needs to be started first..."
                                     },
-                                    0,
-                                    50,
+                                    PADDING,
+                                    60,
                                 );
                             }
 
                             if is_server {
-                                // server.send_whoami(&mut network);
                                 if server.is_client_connected(&mut network) {
+                                    // server.send_whoami(&mut network);
                                     GameState::GameRunningNetwork(network)
                                 } else {
+                                    // server.send_whoami(&mut network);
                                     GameState::WaitForPartner(network)
                                 }
                             } else {
-                                client.send_whoami(&mut network);
+                                client_whoami_time += delta_time;
+                                if client_whoami_time > 200 { // prevent output buffer exhaustion
+                                    client_whoami_time = 0;
+                                    client.send_whoami(&mut network);
+                                }
                                 if client.is_server_connected(&mut network) {
                                     GameState::GameRunningNetwork(network)
                                 } else {
@@ -380,6 +375,7 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut cache,
                                 total_time,
                                 delta_time,
+                                &mut physics_cache,
                             );
                             GameState::GameRunningLocal
                         }
@@ -401,12 +397,13 @@ fn main(hw: board::Hardware) -> ! {
                                 &mut cache,
                                 total_time,
                                 delta_time,
+                                &mut physics_cache,
                             );
                             GameState::GameRunningNetwork(network)
                         }
                     };
 
-                    //graphics::draw_guidelines(&mut framebuffer);
+                    // graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
@@ -416,5 +413,5 @@ fn main(hw: board::Hardware) -> ! {
                 }
             }
         },
-    )   
+    )
 }

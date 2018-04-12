@@ -2,14 +2,20 @@ use ball::BALL_RADIUS;
 use lcd::HEIGHT;
 use lcd::WIDTH;
 use network;
+use network::packets::STATE_RUNNING;
+use network::packets::STATE_WON_PLAYER_1;
+use network::packets::STATE_WON_PLAYER_2;
 use racket::RACKET_HEIGHT;
 use racket::RACKET_WIDTH;
 
-const RACKET_SPEED: i16 = 5;
+const RACKET_SPEED: i16 = 8;
+const INCREASE_VELOCITY_AFTER_RACKET_HITS: usize = 5;
 
 pub fn calculate_physics(
     server_gamestate: &mut network::GamestatePacket,
     inputs: [network::InputPacket; 2],
+    total_time: usize,
+    cache: &mut PhysicsCache,
 ) {
     let racket_width = RACKET_WIDTH as i16;
     let racket_height = RACKET_HEIGHT as i16;
@@ -26,12 +32,9 @@ pub fn calculate_physics(
     let mut touches_racket_under_side: bool = false;
     let mut in_goal: bool = false;
 
-    
-
-    if server_gamestate.state != 0 {
+    if server_gamestate.state != STATE_RUNNING {
         return;
     }
-
 
     // Racket Positions
     // for each player check whether to move up, down or not at all
@@ -76,26 +79,44 @@ pub fn calculate_physics(
                 touches_racket_under_side = true;
                 
             } else {
-                //ball touches face of racket
+                // ball touches face of racket
                 touches_racket_face = true;
+            }
+
+            cache.racket_hits += 1;
+            if cache.racket_hits > INCREASE_VELOCITY_AFTER_RACKET_HITS {
+                cache.racket_hits = 0;
+                if total_time % 2 == 0 {
+                    if ball.x_vel > 0 {
+                        ball.x_vel += 1;
+                    } else {
+                        ball.x_vel -= 1;
+                    }
+                } else {
+                    if ball.y_vel > 0 {
+                        ball.y_vel += 1;
+                    } else {
+                        ball.y_vel -= 1;
+                    }
+                }
             }
         }
     }
-    //move Ball
-    //if ball touches top or bottom wall
-    if y_pos_new < ball_radius || y_pos_new > height - 1 - ball_radius {
+    // move Ball
+    // if ball touches top or bottom wall
+    if y_pos_new <= ball_radius || y_pos_new >= height - 1 - ball_radius {
         ball.y_vel *= -1;
     }
-    //if ball touches racket side
+    // if ball touches racket side
     if touches_racket_upper_side {
         ball.y_vel = -abs(ball.y_vel);
     } else if touches_racket_under_side {
         ball.y_vel = abs(ball.y_vel);
     }
-    //new position=old position+velocity
+    // new position=old position+velocity
     ball.y += ball.y_vel;
 
-    //check for goals
+    // check for goals
     if x_pos_new <= ball_radius || x_pos_new >= width - 1 - ball_radius {
         in_goal = true;
     }
@@ -107,23 +128,24 @@ pub fn calculate_physics(
             ball.x_vel = abs(ball.x_vel);
         }
     }
-    //new position=old position+velocity
+    // new position=old position+velocity
     ball.x += ball.x_vel;
     // if ball touches goal increase score and reset ball position
     if in_goal {
         if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
             if server_gamestate.score[1] >= 9 {
-                server_gamestate.state = 255;
+                server_gamestate.state = STATE_WON_PLAYER_2;
             }
         }
         if x_pos_new >= width - 1 - ball_radius {
             server_gamestate.score[0] += 1;
             if server_gamestate.score[0] >= 9 {
-                server_gamestate.state = 254;
+                server_gamestate.state = STATE_WON_PLAYER_1;
             }
         }
-        ball.reset();
+        ball.reset(total_time);
+        cache.racket_hits = 0;
     }
 }
 fn overlap_test(rectangle1: Rectangle, rectangle2: Rectangle) -> bool {
@@ -152,5 +174,15 @@ impl Rectangle {
             top: centre_y - height,
             bottom: centre_y + height,
         }
+    }
+}
+
+pub struct PhysicsCache {
+    pub racket_hits: usize,
+}
+
+impl PhysicsCache {
+    pub fn new() -> PhysicsCache {
+        PhysicsCache { racket_hits: 0 }
     }
 }

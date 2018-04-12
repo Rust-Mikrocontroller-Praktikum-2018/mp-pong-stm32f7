@@ -6,12 +6,18 @@ use lcd::TextWriter;
 use network;
 use racket;
 use PADDING;
+use network::packets::STATE_RUNNING;
+use network::packets::STATE_WON_PLAYER_1;
+use network::packets::STATE_WON_PLAYER_2;
+use lcd::WIDTH;
+use ball::BALL_RADIUS;
+use racket::RACKET_WIDTH;
 
-const SCORE_1_X: usize = 480 / 2 - 10 - 15;
+
+const SCORE_1_X: usize = 480 / 2 - 20 - 15;
 const SCORE_1_Y: usize = 272 - 50;
-const SCORE_2_X: usize = 480 / 2 + 10;
+const SCORE_2_X: usize = 480 / 2 + 20;
 const SCORE_2_Y: usize = 272 - 50;
-const SCORE_REDRAW_TIME: usize = 800;
 
 pub fn draw_rectangle(
     buffer: &mut lcd::Framebuffer,
@@ -241,17 +247,16 @@ pub fn update_graphics(
     ball: &mut ball::Ball,
     menu_font: &mut TextWriter,
     cache: &mut GraphicsCache,
-    total_time: usize,
+    _total_time: usize,
     _delta_time: usize,
 ) {
-
-    if gamestate.state != 0 {
+    if gamestate.state != STATE_RUNNING {
         if cache.last_state != gamestate.state {
-            if gamestate.state == 254 {
-                menu_font.write_at(framebuffer, "Player 1 wins", PADDING, PADDING);
-            } else if gamestate.state == 255 {
-                menu_font.write_at(framebuffer, "Player 2 wins", PADDING, PADDING);
-            }
+            if gamestate.state == STATE_WON_PLAYER_1 {
+                menu_font.write_at(framebuffer, "Player 1 wins!", 115, PADDING);
+            } else if gamestate.state == STATE_WON_PLAYER_2 {
+                menu_font.write_at(framebuffer, "Player 2 wins!", 115, PADDING);
+            } 
             cache.last_state = gamestate.state;
         }
     } else if cache.last_state != 0 {
@@ -262,21 +267,25 @@ pub fn update_graphics(
         // TODO: redraw
     }
 
-    //send gamestate to ball
+    // send gamestate to ball
     ball.update_ball_pos(framebuffer, gamestate.ball);
     // send gamestate to racket to let racket move
     for id in 0..2 {
         rackets[id].update_racket_pos(framebuffer, gamestate.rackets[id].y as u16);
     }
-    
-    let redraw_score_1 =
-        gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
-    let redraw_score_2 =
-        gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
 
-    if redraw_score_1 || redraw_score_2 {
-        cache.last_score_redraw = total_time;
+    // FIXME super dirty hack that just draws over bad situations 🙈
+    if ball.get_xpos_centre_old() <= BALL_RADIUS + 2* RACKET_WIDTH {
+        rackets[0].draw_racket(framebuffer);
+    } else if ball.get_xpos_centre_old() >= (WIDTH as u16) - BALL_RADIUS - 2*RACKET_WIDTH {
+        rackets[1].draw_racket(framebuffer);
     }
+
+    let redraw_score_1 = gamestate.score[0] != cache.score[0]
+        || is_ball_in_score_area(ball);
+    let redraw_score_2 = gamestate.score[1] != cache.score[1]
+        || is_ball_in_score_area(ball);
+
 
     if redraw_score_1 {
         if gamestate.score[0] == 0 && cache.score[0] != 0 {
@@ -312,6 +321,12 @@ pub fn update_graphics(
     }
 }
 
+fn is_ball_in_score_area(ball: &mut ball::Ball) -> bool {
+    ball.get_ypos_centre() > SCORE_1_Y as u16 - BALL_RADIUS && 
+    ball.get_xpos_centre() > SCORE_1_X as u16 - BALL_RADIUS &&
+    ball.get_xpos_centre() < SCORE_2_X as u16 + BALL_RADIUS + 30
+}
+
 fn draw_fix_for_score_0(framebuffer: &mut Framebuffer, x: usize, y: usize) {
     let x = x as u16;
     let y = y as u16;
@@ -337,7 +352,6 @@ pub fn draw_guidelines(framebuffer: &mut Framebuffer) {
 
 pub struct GraphicsCache {
     score: [u8; 2],
-    last_score_redraw: usize,
     last_state: u8,
 }
 
@@ -345,7 +359,6 @@ impl GraphicsCache {
     pub fn new() -> GraphicsCache {
         GraphicsCache {
             score: [99, 99],
-            last_score_redraw: 0,
             last_state: 0,
         }
     }

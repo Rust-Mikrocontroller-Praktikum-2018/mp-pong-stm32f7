@@ -5,7 +5,7 @@ use smoltcp::socket::{UdpPacketMetadata, UdpSocket, UdpSocketBuffer};
 use smoltcp::time::Instant;
 use smoltcp::wire::{EthernetAddress, IpAddress, IpEndpoint, Ipv4Address};
 
-mod packets;
+pub mod packets;
 pub use self::packets::BallPacket;
 pub use self::packets::GamestatePacket;
 pub use self::packets::InputPacket;
@@ -33,6 +33,15 @@ impl Network {
             &mut self.sockets,
             Instant::from_millis(system_clock::ticks() as i64),
         ) {
+            Err(smoltcp::Error::Exhausted) => {
+                // Exhausted may mean full -> we need to read more
+
+                // let mut socket = &mut self.sockets.iter_mut().nth(0).unwrap();
+                for mut socket in self.sockets.iter_mut() {
+                    return Network::poll_udp_packet(&mut socket);
+                }
+                Err(smoltcp::Error::Illegal)
+            },
             Err(e) => Err(e),
             Ok(socket_changed) => if socket_changed {
                 // let mut socket = &mut self.sockets.iter_mut().nth(0).unwrap();
@@ -48,9 +57,16 @@ impl Network {
 
     fn poll_udp_packet(socket: &mut Socket) -> Result<Option<Vec<u8>>, smoltcp::Error> {
         match socket {
-            &mut Socket::Udp(ref mut socket) => match socket.recv() {
-                Ok((data, _remote_endpoint)) => Ok(Some(Vec::from(data))),
-                Err(err) => Err(err),
+            &mut Socket::Udp(ref mut socket) => { 
+
+                if socket.can_recv() {
+                    match socket.recv() {
+                        Ok((data, _remote_endpoint)) => Ok(Some(Vec::from(data))),
+                        Err(err) => Err(err),
+                    }
+                } else {
+                    Ok(None)
+                }
             },
             _ => Ok(None),
         }
@@ -66,7 +82,9 @@ impl Network {
     fn push_udp_packet(socket: &mut Socket, endpoint: IpEndpoint, data: &[u8]) {
         match socket {
             &mut Socket::Udp(ref mut socket) => {
-                let _result = socket.send_slice(data, endpoint); // TODO: Error handling
+                if socket.can_send() {
+                    let _result = socket.send_slice(data, endpoint); // TODO: Error handling
+                }
             }
             _ => {}
         }
@@ -103,8 +121,8 @@ pub fn init(
     let mut sockets = SocketSet::new(Vec::new());
     let endpoint = IpEndpoint::new(IpAddress::Ipv4(ip_addr), PORT);
 
-    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 256]);
-    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 128]);
+    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 512]);
+    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 512]);
     let mut udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
     udp_socket.bind(endpoint).unwrap();
     sockets.add(udp_socket);
@@ -147,10 +165,10 @@ impl Server for EthServer {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {},
-            Err(smoltcp::Error::Unrecognized) => {},
+            Err(smoltcp::Error::Exhausted) => {}
+            Err(smoltcp::Error::Unrecognized) => {}
             Err(e) => {
-                hprintln!("Network error: {:?}", e);
+                hprintln!("Server error: {:?}", e);
             }
         }
         self.player_input
@@ -173,10 +191,10 @@ impl Server for EthServer {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {hprint!("e")},
-            Err(smoltcp::Error::Unrecognized) => {},
+            // Err(smoltcp::Error::Exhausted) => {hprint!("e")},
+            // Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
-                hprintln!("Network error: {:?}", e);
+                hprintln!("Server init error: {:?}", e);
             }
         }
         false
@@ -215,10 +233,10 @@ impl Client for EthClient {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {},
-            Err(smoltcp::Error::Unrecognized) => {},
+            Err(smoltcp::Error::Exhausted) => {}
+            Err(smoltcp::Error::Unrecognized) => {}
             Err(e) => {
-                hprintln!("Network error: {:?}", e);
+                hprintln!("Client error: {:?}", e);
             }
         }
         self.gamestate
@@ -236,10 +254,10 @@ impl Client for EthClient {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {},
-            Err(smoltcp::Error::Unrecognized) => {},
+            // Err(smoltcp::Error::Exhausted) => {},
+            // Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
-                hprintln!("Network error: {:?}", e);
+                hprintln!("Client init error: {:?}", e);
             }
         }
         false
@@ -253,7 +271,7 @@ impl Client for EthClient {
 impl EthClient {
     pub fn new() -> EthClient {
         EthClient {
-            gamestate: GamestatePacket::new(),
+            gamestate: GamestatePacket::new(0),
         }
     }
 }
