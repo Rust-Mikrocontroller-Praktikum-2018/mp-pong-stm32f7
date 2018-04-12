@@ -2,13 +2,13 @@ use ball::BALL_RADIUS;
 use lcd::HEIGHT;
 use lcd::WIDTH;
 use network;
-use network::packets::STATE_RUNNING;
 use network::packets::STATE_WON_PLAYER_1;
 use network::packets::STATE_WON_PLAYER_2;
+use network::packets::STATE_RUNNING;
 use racket::RACKET_HEIGHT;
 use racket::RACKET_WIDTH;
 
-const RACKET_SPEED: i16 = 8;
+const RACKET_SPEED: i16 = 5;
 const INCREASE_VELOCITY_AFTER_RACKET_HITS: usize = 5;
 
 pub fn calculate_physics(
@@ -70,14 +70,11 @@ pub fn calculate_physics(
         );
 
         if overlap_test(rect_ball, rect_racket) {
-            
             //ball touches side of racket
-            if ball.y+ball_radius/2 <= racket_pos_old - racket_height {
+            if ball.y + ball_radius / 2 <= racket_pos_old - racket_height {
                 touches_racket_upper_side = true;
-                
-            } else if ball.y-ball_radius/2>= racket_pos_old + racket_height {
+            } else if ball.y - ball_radius / 2 >= racket_pos_old + racket_height {
                 touches_racket_under_side = true;
-                
             } else {
                 // ball touches face of racket
                 touches_racket_face = true;
@@ -92,13 +89,11 @@ pub fn calculate_physics(
                     } else {
                         ball.x_vel -= 1;
                     }
+                } /*else if ball.y_vel > 0 {
+                    ball.y_vel += 1;
                 } else {
-                    if ball.y_vel > 0 {
-                        ball.y_vel += 1;
-                    } else {
-                        ball.y_vel -= 1;
-                    }
-                }
+                    ball.y_vel -= 1;
+                }*/
             }
         }
     }
