@@ -221,7 +221,7 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut client = network::EthClient::new();
             let mut server = network::EthServer::new();
-            let mut server_gamestate = network::GamestatePacket::new();
+            let mut server_gamestate = network::GamestatePacket::new(system_clock::ticks());
 
             let mut local_input_1 = network::InputPacket::new();
             let mut local_input_2 = network::InputPacket::new();

@@ -7,6 +7,7 @@ use racket::RACKET_WIDTH;
 use network::packets::STATE_RUNNING;
 use network::packets::STATE_WON_PLAYER_1;
 use network::packets::STATE_WON_PLAYER_2;
+use network::BallPacket;
 
 
 const RACKET_SPEED: i16 = 8;
@@ -14,6 +15,7 @@ const RACKET_SPEED: i16 = 8;
 pub fn calculate_physics(
     server_gamestate: &mut network::GamestatePacket,
     inputs: [network::InputPacket; 2],
+    total_time: usize,
 ) {
     let racket_width = RACKET_WIDTH as i16;
     let racket_height = RACKET_HEIGHT as i16;
@@ -121,7 +123,7 @@ pub fn calculate_physics(
                 server_gamestate.state = STATE_WON_PLAYER_1;
             }
         }
-        ball.reset();
+        ball.reset(total_time);
     }
 }
 fn overlap_test(rectangle1: Rectangle, rectangle2: Rectangle) -> bool {
@@ -135,6 +137,8 @@ fn abs(value: i16) -> i16 {
         value
     }
 }
+
+
 
 struct Rectangle {
     left: i16,

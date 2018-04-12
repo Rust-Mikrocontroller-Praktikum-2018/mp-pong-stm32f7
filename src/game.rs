@@ -42,13 +42,13 @@ pub fn game_loop_local(
         graphics::draw_initial(framebuffer, rackets, ball);
     }
 
-    handle_local_calculations(local_gamestate, local_input_1, local_input_2);
+    handle_local_calculations(local_gamestate, local_input_1, local_input_2, total_time);
 
     // handle input
     if local_gamestate.state >= STATE_WON_PLAYER_1 {
         let touch = input.handle_menu();
         if touch.is_down && !touch.any_touch_last_frame {
-            *local_gamestate = GamestatePacket::new();
+            *local_gamestate = GamestatePacket::new(total_time);
         }
     } else {
         input.evaluate_touch_two_players(local_input_1, local_input_2);
@@ -93,7 +93,7 @@ pub fn game_loop_network(
     }
 
     if is_server {
-        handle_network_server(server, network, local_gamestate, local_input_1);
+        handle_network_server(server, network, local_gamestate, local_input_1, total_time);
     } else {
         handle_network_client(client, network, local_gamestate, local_input_1);
     }
@@ -102,7 +102,7 @@ pub fn game_loop_network(
      {
         let touch = input.handle_menu();
         if touch.is_down && !touch.any_touch_last_frame {
-            *local_gamestate = GamestatePacket::new();
+            *local_gamestate = GamestatePacket::new(total_time);
         }
     } else {
         // handle input
@@ -127,9 +127,10 @@ fn handle_local_calculations(
     local_gamestate: &mut GamestatePacket,
     local_input_1: &InputPacket,
     local_input_2: &InputPacket,
+    total_time: usize,
 ) {
     let inputs = [*local_input_1, *local_input_2];
-    physics::calculate_physics(local_gamestate, inputs);
+    physics::calculate_physics(local_gamestate, inputs, total_time);
 }
 
 fn handle_network_server(
@@ -137,9 +138,10 @@ fn handle_network_server(
     network: &mut Network,
     local_gamestate: &mut GamestatePacket,
     local_input_1: &InputPacket,
+    total_time: usize,
 ) {
     let inputs = [*local_input_1, server.receive_input(network)];
-    physics::calculate_physics(local_gamestate, inputs);
+    physics::calculate_physics(local_gamestate, inputs, total_time);
     server.send_gamestate(network, local_gamestate);
 }
 

@@ -276,7 +276,7 @@ impl Client for EthClient {
 impl EthClient {
     pub fn new() -> EthClient {
         EthClient {
-            gamestate: GamestatePacket::new(),
+            gamestate: GamestatePacket::new(0),
         }
     }
 }

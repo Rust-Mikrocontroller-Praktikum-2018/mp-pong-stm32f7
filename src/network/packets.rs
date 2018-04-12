@@ -38,7 +38,8 @@ pub struct WhoamiPacket {
 }
 
 impl GamestatePacket {
-    pub fn new() -> GamestatePacket {
+    pub fn new(total_time: usize) -> GamestatePacket {
+        let (vel_x, vel_y) = random_vel(total_time);
         GamestatePacket {
             rackets: [
                 RacketPacket {
@@ -53,20 +54,22 @@ impl GamestatePacket {
             ball: BallPacket {
                 x: (WIDTH / 2) as i16,
                 y: (HEIGHT / 2) as i16,
-                x_vel: random_vel()[0],
-                y_vel: random_vel()[1],
+                x_vel: vel_x,
+                y_vel: vel_y,
             },
             score: [0, 0],
             state: 0,
         }
     }
 }
+
 impl BallPacket {
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, total_time: usize) {
+        let (vel_x, vel_y) = random_vel(total_time);
         self.x = (WIDTH / 2) as i16;
         self.y = (HEIGHT / 2) as i16;
-        self.x_vel = random_vel()[0];
-        self.y_vel = random_vel()[1];
+        self.x_vel = vel_x;
+        self.y_vel = vel_x;
     }
 }
 
@@ -224,10 +227,28 @@ fn lower_byte(input: i16) -> u8 {
 fn merge(upper: u8, lower: u8) -> i16 {
     i16::from(upper) << 8 | i16::from(lower)
 }
-fn random_vel() -> [i16; 2] {
-    let mut random_x_vel = 5;
-    let mut random_y_vel = 5;
-    // TODO generate random velocity between BALL_MIN_SPEED and BALL_MAX_SPEED
 
-    [random_x_vel, random_y_vel]
+const VELOCITIES: [(i16,i16); 16] = [
+    (-3,-3),
+    (-3,3),
+    (3,-3),
+    (-3,3),
+    (-4,-2),
+    (-4,2),
+    (4,-2),
+    (-4,2),
+    (-2,-4),
+    (-2,4),
+    (2,-4),
+    (-2,4),
+    (-3,-3),
+    (-3,3),
+    (3,-3),
+    (-3,3),
+];
+
+// "random" :P https://xkcd.com/221/
+fn random_vel(total_time: usize) -> (i16, i16) {
+    let ran = (total_time as u8) % 16; // should work as 256 is dividable by 4
+    VELOCITIES[ran as usize]
 }
