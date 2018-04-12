@@ -350,7 +350,7 @@ fn main(hw: board::Hardware) -> ! {
                             }
 
                             if is_server {
-                                server.send_whoami(&mut network);
+                                // server.send_whoami(&mut network);
                                 if server.is_client_connected(&mut network) {
                                     GameState::GameRunningNetwork(network)
                                 } else {
