@@ -21,9 +21,18 @@ pub fn calculate_physics(
     let y_pos_new = ball.y + ball.y_vel;
 
     let mut touches_racket_face: bool = false;
+
     let mut touches_racket_upper_side: bool = false;
     let mut touches_racket_under_side: bool = false;
     let mut in_goal: bool = false;
+
+    
+
+    if server_gamestate.state != 0 {
+        return;
+    }
+
+
     // Racket Positions
     // for each player check whether to move up, down or not at all
     for i in 0..2 {
@@ -101,9 +110,15 @@ pub fn calculate_physics(
     if in_goal {
         if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
+            if server_gamestate.score[1] >= 9 {
+                server_gamestate.state = 255;
+            }
         }
         if x_pos_new >= width - 1 - ball_radius {
             server_gamestate.score[0] += 1;
+            if server_gamestate.score[0] >= 9 {
+                server_gamestate.state = 254;
+            }
         }
         ball.reset();
     }

@@ -10,6 +10,12 @@ pub struct GamestatePacket {
     pub rackets: [RacketPacket; 2],
     pub ball: BallPacket,
     pub score: [u8; 2],
+    pub state: u8, /*
+    0: running
+
+    254: left player won
+    255: right player won
+    */
 }
 #[derive(Debug, Copy, Clone)]
 pub struct RacketPacket {
@@ -52,6 +58,7 @@ impl GamestatePacket {
                 y_vel: random_vel()[1],
             },
             score: [0, 0],
+            state: 0,
         }
     }
 }
@@ -92,6 +99,7 @@ impl Serializable for GamestatePacket {
         result.extend(self.ball.serialize());
         result.push(self.score[0]);
         result.push(self.score[1]);
+        result.push(self.state);
         result
     }
 
@@ -105,16 +113,18 @@ impl Serializable for GamestatePacket {
         index += BallPacket::len();
         let score_player1 = input[index];
         let score_player2 = input[index + 1];
+        let state = input[index + 1];
 
         GamestatePacket {
             rackets: [racket1, racket2],
             ball,
             score: [score_player1, score_player2],
+            state: state,
         }
     }
 
     fn len() -> usize {
-        2 * RacketPacket::len() + BallPacket::len() + 2
+        2 * RacketPacket::len() + BallPacket::len() + 2 + 1
     }
 }
 

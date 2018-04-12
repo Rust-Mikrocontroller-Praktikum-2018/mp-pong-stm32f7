@@ -173,7 +173,7 @@ impl Server for EthServer {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {},
+            Err(smoltcp::Error::Exhausted) => {hprint!("e")},
             Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
                 hprintln!("Network error: {:?}", e);

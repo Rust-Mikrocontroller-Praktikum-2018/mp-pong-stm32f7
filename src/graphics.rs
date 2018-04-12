@@ -5,11 +5,13 @@ use lcd::Framebuffer;
 use lcd::TextWriter;
 use network;
 use racket;
+use PADDING;
 
 const SCORE_1_X: usize = 480 / 2 - 10 - 15;
-const SCORE_1_Y: usize = 272 / 2 - 20;
+const SCORE_1_Y: usize = 272 - 50;
 const SCORE_2_X: usize = 480 / 2 + 10;
-const SCORE_2_Y: usize = 272 / 2 - 20;
+const SCORE_2_Y: usize = 272 - 50;
+const SCORE_REDRAW_TIME: usize = 800;
 
 pub fn draw_rectangle(
     buffer: &mut lcd::Framebuffer,
@@ -242,6 +244,24 @@ pub fn update_graphics(
     total_time: usize,
     _delta_time: usize,
 ) {
+
+    if gamestate.state != 0 {
+        if cache.last_state != gamestate.state {
+            if gamestate.state == 254 {
+                menu_font.write_at(framebuffer, "Player 1 wins", PADDING, PADDING);
+            } else if gamestate.state == 255 {
+                menu_font.write_at(framebuffer, "Player 2 wins", PADDING, PADDING);
+            }
+            cache.last_state = gamestate.state;
+        }
+    } else if cache.last_state != 0 {
+        cache.last_state = 0;
+        framebuffer.clear();
+        *cache = GraphicsCache::new();
+        draw_initial(framebuffer, rackets, ball);
+        // TODO: redraw
+    }
+
     //send gamestate to ball
     ball.update_ball_pos(framebuffer, gamestate.ball);
     // send gamestate to racket to let racket move
@@ -250,9 +270,9 @@ pub fn update_graphics(
     }
     
     let redraw_score_1 =
-        gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + 1000;
+        gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
     let redraw_score_2 =
-        gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + 1000;
+        gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
 
     if redraw_score_1 || redraw_score_2 {
         cache.last_score_redraw = total_time;
@@ -318,6 +338,7 @@ pub fn draw_guidelines(framebuffer: &mut Framebuffer) {
 pub struct GraphicsCache {
     score: [u8; 2],
     last_score_redraw: usize,
+    last_state: u8,
 }
 
 impl GraphicsCache {
@@ -325,6 +346,7 @@ impl GraphicsCache {
         GraphicsCache {
             score: [99, 99],
             last_score_redraw: 0,
+            last_state: 0,
         }
     }
 }

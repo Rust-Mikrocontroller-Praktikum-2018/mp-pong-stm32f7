@@ -44,7 +44,14 @@ pub fn game_loop_local(
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
 
     // handle input
-    input.evaluate_touch_two_players(local_input_1, local_input_2);
+    if local_gamestate.state >= 254 {
+        let touch = input.handle_menu();
+        if touch.is_down && !touch.any_touch_last_frame {
+            *local_gamestate = GamestatePacket::new();
+        }
+    } else {
+        input.evaluate_touch_two_players(local_input_1, local_input_2);
+    }
 
     // move rackets and ball
     graphics::update_graphics(
@@ -90,9 +97,15 @@ pub fn game_loop_network(
         handle_network_client(client, network, local_gamestate, local_input_1);
     }
 
-    // handle input
-    input.evaluate_touch_one_player(local_input_1);
-
+    if is_server && local_gamestate.state >= 254 {
+        let touch = input.handle_menu();
+        if touch.is_down && !touch.any_touch_last_frame {
+            *local_gamestate = GamestatePacket::new();
+        }
+    } else {
+        // handle input
+        input.evaluate_touch_one_player(local_input_1);
+    }
     // move rackets and ball
     graphics::update_graphics(
         framebuffer,
