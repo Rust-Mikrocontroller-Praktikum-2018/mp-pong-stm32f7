@@ -332,7 +332,7 @@ fn main(hw: board::Hardware) -> ! {
                                     if is_server {
                                         "Waiting for client..."
                                     } else {
-                                        "Waiting for server..."
+                                        "Server needs to be started first..."
                                     },
                                     PADDING,
                                     60,

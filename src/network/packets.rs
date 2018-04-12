@@ -69,7 +69,7 @@ impl BallPacket {
         self.x = (WIDTH / 2) as i16;
         self.y = (HEIGHT / 2) as i16;
         self.x_vel = vel_x;
-        self.y_vel = vel_x;
+        self.y_vel = vel_y;
     }
 }
 

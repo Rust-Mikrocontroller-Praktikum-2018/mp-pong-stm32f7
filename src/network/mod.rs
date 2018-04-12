@@ -83,12 +83,7 @@ impl Network {
         match socket {
             &mut Socket::Udp(ref mut socket) => {
                 if socket.can_send() {
-                    let result = socket.send_slice(data, endpoint); // TODO: Error handling
-                    /*if result.is_err() {
-                        hprintln!("Network: {:?}", result);
-                    }*/
-                //} else {
-                    //hprintln!("Network: Buffer full {} {}", socket.is_open(), socket.can_recv());
+                    let _result = socket.send_slice(data, endpoint); // TODO: Error handling
                 }
             }
             _ => {}

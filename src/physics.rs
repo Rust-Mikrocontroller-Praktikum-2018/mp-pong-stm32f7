@@ -2,7 +2,6 @@ use ball::BALL_RADIUS;
 use lcd::HEIGHT;
 use lcd::WIDTH;
 use network;
-use network::BallPacket;
 use network::packets::STATE_RUNNING;
 use network::packets::STATE_WON_PLAYER_1;
 use network::packets::STATE_WON_PLAYER_2;
@@ -181,8 +180,6 @@ pub struct PhysicsCache {
 
 impl PhysicsCache {
     pub fn new() -> PhysicsCache {
-        PhysicsCache {
-            racket_hits: 0
-        }
+        PhysicsCache { racket_hits: 0 }
     }
 }
