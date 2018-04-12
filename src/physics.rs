@@ -46,14 +46,6 @@ pub fn calculate_physics(
     let mut random_x_vel;
     let mut random_y_vel;
 
-
-    // TMP::
-    if ball.x > 300 {
-        server_gamestate.score[0] = 1;
-        ball.x = 300;
-    }
-    // ::TMP
-
     // if ball touches top or bottom wall invert y_vel
     if ball.y <= ball_radius || ball.y >= 271 - ball_radius {
         ball.x_vel *= -1;
