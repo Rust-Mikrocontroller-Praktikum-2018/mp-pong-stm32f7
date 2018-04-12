@@ -147,7 +147,8 @@ impl Server for EthServer {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {}
+            Err(smoltcp::Error::Exhausted) => {},
+            Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
                 hprintln!("Network error: {:?}", e);
             }
@@ -172,7 +173,8 @@ impl Server for EthServer {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {}
+            Err(smoltcp::Error::Exhausted) => {},
+            Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
                 hprintln!("Network error: {:?}", e);
             }
@@ -213,7 +215,8 @@ impl Client for EthClient {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {}
+            Err(smoltcp::Error::Exhausted) => {},
+            Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
                 hprintln!("Network error: {:?}", e);
             }
@@ -233,7 +236,8 @@ impl Client for EthClient {
                 }
                 None => {}
             },
-            Err(smoltcp::Error::Exhausted) => {}
+            Err(smoltcp::Error::Exhausted) => {},
+            Err(smoltcp::Error::Unrecognized) => {},
             Err(e) => {
                 hprintln!("Network error: {:?}", e);
             }
