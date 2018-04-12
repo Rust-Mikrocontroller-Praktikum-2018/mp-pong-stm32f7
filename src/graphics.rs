@@ -251,9 +251,9 @@ pub fn update_graphics(
     if gamestate.state != STATE_RUNNING {
         if cache.last_state != gamestate.state {
             if gamestate.state == STATE_WON_PLAYER_1 {
-                menu_font.write_at(framebuffer, "Player 1 wins", PADDING, PADDING);
+                menu_font.write_at(framebuffer, "Player 1 wins!", 115, PADDING);
             } else if gamestate.state == STATE_WON_PLAYER_2 {
-                menu_font.write_at(framebuffer, "Player 2 wins", PADDING, PADDING);
+                menu_font.write_at(framebuffer, "Player 2 wins!", 115, PADDING);
             } 
             cache.last_state = gamestate.state;
         }

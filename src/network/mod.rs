@@ -83,11 +83,11 @@ impl Network {
         match socket {
             &mut Socket::Udp(ref mut socket) => {
                 if socket.can_send() {
-                    let _result = socket.send_slice(data, endpoint); // TODO: Error handling
-                    //if result.is_err() {
-                        // exhausted hprintln!("Network: {:?}", result);
-                    //}
-                } else {
+                    let result = socket.send_slice(data, endpoint); // TODO: Error handling
+                    /*if result.is_err() {
+                        hprintln!("Network: {:?}", result);
+                    }*/
+                //} else {
                     //hprintln!("Network: Buffer full {} {}", socket.is_open(), socket.can_recv());
                 }
             }
@@ -126,8 +126,8 @@ pub fn init(
     let mut sockets = SocketSet::new(Vec::new());
     let endpoint = IpEndpoint::new(IpAddress::Ipv4(ip_addr), PORT);
 
-    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 256]);
-    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 128]);
+    let udp_rx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 3], vec![0u8; 512]);
+    let udp_tx_buffer = UdpSocketBuffer::new(vec![UdpPacketMetadata::EMPTY; 1], vec![0u8; 512]);
     let mut udp_socket = UdpSocket::new(udp_rx_buffer, udp_tx_buffer);
     udp_socket.bind(endpoint).unwrap();
     sockets.add(udp_socket);

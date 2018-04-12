@@ -231,7 +231,7 @@ fn main(hw: board::Hardware) -> ! {
 
             let start_time = system_clock::ticks();
             let mut last_time = start_time;
-            let client_whoami_time = 0;
+            let mut client_whoami_time = 0;
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -338,28 +338,24 @@ fn main(hw: board::Hardware) -> ! {
                             }
 
                             if is_server {
-                                let result = if server.is_client_connected(&mut network) {
+                                if server.is_client_connected(&mut network) {
                                     // server.send_whoami(&mut network);
                                     GameState::GameRunningNetwork(network)
                                 } else {
                                     // server.send_whoami(&mut network);
                                     GameState::WaitForPartner(network)
-                                };
-                                
-                                result 
+                                }
                             } else {
                                 client_whoami_time += delta_time;
                                 if client_whoami_time > 200 { // prevent output buffer exhaustion
                                     client_whoami_time = 0;
                                     client.send_whoami(&mut network);
                                 }
-                                let result = if client.is_server_connected(&mut network) {
+                                if client.is_server_connected(&mut network) {
                                     GameState::GameRunningNetwork(network)
                                 } else {
                                     GameState::WaitForPartner(network)
-                                };
-                                
-                                result
+                                }
                             }
                         }
                         GameState::GameRunningLocal => {
@@ -403,7 +399,7 @@ fn main(hw: board::Hardware) -> ! {
                         }
                     };
 
-                    // graphics::draw_guidelines(&mut framebuffer);
+                    graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
