@@ -5,7 +5,7 @@ use network;
 use racket::RACKET_HEIGHT;
 use racket::RACKET_WIDTH;
 
-const RACKET_SPEED: i16 = 8;
+const RACKET_SPEED: i16 = 5;
 
 pub fn calculate_physics(
     server_gamestate: &mut network::GamestatePacket,
@@ -58,7 +58,7 @@ pub fn calculate_physics(
             server_gamestate.rackets[i].y = racket_pos;
         }
         //Ball touches racket
-        let rect_ball = Rectangle::new(x_pos_new, y_pos_new, ball_radius, 0);
+        let rect_ball = Rectangle::new(x_pos_new, y_pos_new, ball_radius, ball_radius);
         let rect_racket = Rectangle::new(
             server_gamestate.rackets[i].x,
             server_gamestate.rackets[i].y,
@@ -67,11 +67,14 @@ pub fn calculate_physics(
         );
 
         if overlap_test(rect_ball, rect_racket) {
+            
             //ball touches side of racket
-            if ball.y + ball_radius < racket_pos_old - racket_height {
-                touches_racket_under_side = true;
-            } else if ball.y - ball_radius > racket_pos_old + racket_height {
+            if ball.y+ball_radius/2 <= racket_pos_old - racket_height {
                 touches_racket_upper_side = true;
+                
+            } else if ball.y-ball_radius/2>= racket_pos_old + racket_height {
+                touches_racket_under_side = true;
+                
             } else {
                 //ball touches face of racket
                 touches_racket_face = true;
