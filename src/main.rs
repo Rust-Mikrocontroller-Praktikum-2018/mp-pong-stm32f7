@@ -260,6 +260,9 @@ fn main(hw: board::Hardware) -> ! {
                     let delta_time = last_time - now;
                     last_time = now;
 
+
+    server_gamestate.score[1] = ((total_time / 500) % 10) as u8; // TMP
+
                     let just_entered_state = !(previous_gamestate == discriminant(&gamestate));
                     previous_gamestate = discriminant(&gamestate);
 
@@ -405,7 +408,7 @@ fn main(hw: board::Hardware) -> ! {
                         }
                     };
 
-                    graphics::draw_guidelines(&mut framebuffer);
+                    // graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();

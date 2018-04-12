@@ -8,8 +8,13 @@ use lcd::WIDTH;
 use network;
 use racket;
 
+const SCORE_1_X: usize = 480 / 2 - 10 - 15;
+const SCORE_1_Y: usize = 272 / 2 - 20;
+const SCORE_2_X: usize = 480 / 2 + 10;
+const SCORE_2_Y: usize = 272 / 2 - 20;
+
 pub fn draw_rectangle(
-    buffer: &mut lcd::FramebufferL8,
+    buffer: &mut lcd::Framebuffer,
     x_left: u16,
     x_right: u16,
     y_top: u16,
@@ -24,7 +29,7 @@ pub fn draw_rectangle(
 }
 
 pub fn draw_circle(
-    buffer: &mut lcd::FramebufferL8,
+    buffer: &mut lcd::Framebuffer,
     x_pos_centre: u32,
     y_pos_centre: u32,
     radius: u32,
@@ -237,7 +242,7 @@ pub fn update_graphics(
     menu_font: &mut TextWriter,
     cache: &mut GraphicsCache,
     total_time: usize,
-    delta_time: usize,
+    _delta_time: usize,
 ) {
     // TODO: implement
     // send gamestate to racket to let racket move
@@ -248,31 +253,59 @@ pub fn update_graphics(
 
     ball.update_ball_pos(framebuffer, gamestate.ball);
 
-    let mut redraw_score_1 = gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + 1000;
-    let mut redraw_score_2 = gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + 1000;
+
+    let redraw_score_1 =
+        gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + 1000;
+    let redraw_score_2 =
+        gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + 1000;
 
     if redraw_score_1 || redraw_score_2 {
         cache.last_score_redraw = total_time;
     }
 
     if redraw_score_1 {
+        if gamestate.score[0] == 0 && cache.score[0] != 0 {
+            draw_fix_for_score_0(framebuffer, SCORE_1_X, SCORE_1_Y);
+        }
+        if gamestate.score[0] == 1 && cache.score[0] != 1 {
+            draw_fix_for_score_1(framebuffer, SCORE_1_X, SCORE_1_Y);
+        }
+
         cache.score[0] = gamestate.score[0];
         menu_font.write_at(
             framebuffer,
             &format!("{}", gamestate.score[0]),
-            480 / 2 - 10 - 15,
-            272 / 2 - 20,
+            SCORE_1_X,
+            SCORE_1_Y,
         );
     }
     if redraw_score_2 {
+        if gamestate.score[1] == 0 && cache.score[1] != 0 {
+            draw_fix_for_score_0(framebuffer, SCORE_2_X, SCORE_2_Y);
+        }
+        if gamestate.score[1] == 1 && cache.score[1] != 1 {
+            draw_fix_for_score_1(framebuffer, SCORE_2_X, SCORE_2_Y);
+        }
+
         cache.score[1] = gamestate.score[1];
         menu_font.write_at(
             framebuffer,
             &format!("{}", gamestate.score[1]),
-            480 / 2 + 10,
-            272 / 2 - 20,
+            SCORE_2_X,
+            SCORE_2_Y,
         );
     }
+}
+
+fn draw_fix_for_score_0(framebuffer: &mut Framebuffer, x: usize, y: usize) {
+    let x = x as u16;
+    let y = y as u16;
+    draw_rectangle(framebuffer, x, x + 1, y + 10, y + 30, 0);
+}
+fn draw_fix_for_score_1(framebuffer: &mut Framebuffer, x: usize, y: usize) {
+    let x = x as u16;
+    let y = y as u16;
+    draw_rectangle(framebuffer, x + 10, x + 16, y + 10, y + 30, 0);
 }
 
 pub fn draw_guidelines(framebuffer: &mut Framebuffer) {
