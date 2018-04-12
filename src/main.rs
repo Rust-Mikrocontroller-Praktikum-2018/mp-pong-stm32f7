@@ -231,6 +231,7 @@ fn main(hw: board::Hardware) -> ! {
 
             let start_time = system_clock::ticks();
             let mut last_time = start_time;
+            let client_whoami_time = 0;
 
             loop {
                 let need_draw; // This memory space is accessed directly to achive synchronisation. Very unsafe!
@@ -347,11 +348,11 @@ fn main(hw: board::Hardware) -> ! {
                                 
                                 result 
                             } else {
-                                /*client_whoami_time += delta_time;
+                                client_whoami_time += delta_time;
                                 if client_whoami_time > 200 { // prevent output buffer exhaustion
-                                    client_whoami_time = 0;*/
+                                    client_whoami_time = 0;
                                     client.send_whoami(&mut network);
-                                // }
+                                }
                                 let result = if client.is_server_connected(&mut network) {
                                     GameState::GameRunningNetwork(network)
                                 } else {

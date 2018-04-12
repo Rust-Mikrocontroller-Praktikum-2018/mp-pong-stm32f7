@@ -7,7 +7,7 @@ const BALL_MIN_SPEED: i16 = 10;
 
 pub const STATE_RUNNING: u8 = 0;
 pub const STATE_WON_PLAYER_1: u8 = 100;
-pub const STATE_WON_PLAYER_2: u8 = 100;
+pub const STATE_WON_PLAYER_2: u8 = 101;
 
 #[derive(Debug, Copy, Clone)]
 pub struct GamestatePacket {
