@@ -17,7 +17,7 @@ pub fn calculate_physics(
     let y_pos_new = ball.y + ball.y_vel;
 
     let mut touches_racket_face: bool = false;
-
+let mut touches_racket_side: bool = false;
     // Racket Positions
     // for each player check whether to move up, down or not at all
     for i in 0..2 {
@@ -43,7 +43,7 @@ pub fn calculate_physics(
             server_gamestate.rackets[i].y = racket_pos;
         }
         //Ball touches racket
-        let rect_ball = Rectangle::new(x_pos_new, y_pos_new, ball_radius, ball_radius/2);
+        let rect_ball = Rectangle::new(x_pos_new, y_pos_new, ball_radius, 0);
         let rect_racket = Rectangle::new(
             server_gamestate.rackets[i].x,
             server_gamestate.rackets[i].y,
@@ -53,23 +53,21 @@ pub fn calculate_physics(
         //ball touches face of left racket
 
         if overlap_test(rect_ball, rect_racket) {
-            touches_racket_face = true;
+            if ball.y+ball_radius<server_gamestate.rackets[i].y-racket_height||ball.y-ball_radius>server_gamestate.rackets[i].y+racket_height{touches_racket_side=true;}
+            else{touches_racket_face = true;}
+
         }
     }
     //move Ball
-    //if ball touches top or bottom wall
-    if y_pos_new < ball_radius || y_pos_new > 271 - ball_radius {
+    //if ball touches top or bottom wall orr racket side
+    if y_pos_new < ball_radius || y_pos_new > 271 - ball_radius||touches_racket_side {
         ball.y_vel *= -1;
     } else {
         //new position=old position+velocity
         ball.y += ball.y_vel;
     }
-    // if ball touches racket face invert x_vel
-    if touches_racket_face {
-        ball.x_vel *= -1;
-    }
     //check for goals
-    else if x_pos_new < ball_radius || x_pos_new > 479 - ball_radius {
+    if x_pos_new <= ball_radius || x_pos_new >= 479 - ball_radius {
         // if ball touches goal increase score and reset ball position
         if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
@@ -78,6 +76,9 @@ pub fn calculate_physics(
             server_gamestate.score[0] += 1;
         }
         ball.reset();
+    }// if ball touches racket face invert x_vel
+    else if touches_racket_face {
+        ball.x_vel *= -1;
     }
     //new position=old position+velocity
     ball.x += ball.x_vel;

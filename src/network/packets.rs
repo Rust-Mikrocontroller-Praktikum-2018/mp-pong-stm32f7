@@ -1,7 +1,6 @@
 use alloc::Vec;
 use lcd::{HEIGHT, WIDTH};
 use racket::RACKET_WIDTH;
-use stm32f7::system_clock::ticks;
 
 const BALL_MAX_SPEED: i16 = 20;
 const BALL_MIN_SPEED: i16 = 10;

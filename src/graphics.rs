@@ -1,10 +1,8 @@
 use ball;
-use ball::Ball;
 use fps;
 use lcd;
 use lcd::Framebuffer;
 use lcd::TextWriter;
-use lcd::WIDTH;
 use network;
 use racket;
 
@@ -244,16 +242,13 @@ pub fn update_graphics(
     total_time: usize,
     _delta_time: usize,
 ) {
-    // TODO: implement
+    //send gamestate to ball
+    ball.update_ball_pos(framebuffer, gamestate.ball);
     // send gamestate to racket to let racket move
     for id in 0..2 {
         rackets[id].update_racket_pos(framebuffer, gamestate.rackets[id].y as u16);
     }
-    // TODO same for ball
-
-    ball.update_ball_pos(framebuffer, gamestate.ball);
-
-
+    
     let redraw_score_1 =
         gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + 1000;
     let redraw_score_2 =
