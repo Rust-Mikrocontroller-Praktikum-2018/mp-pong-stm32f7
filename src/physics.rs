@@ -4,6 +4,10 @@ use lcd::WIDTH;
 use network;
 use racket::RACKET_HEIGHT;
 use racket::RACKET_WIDTH;
+use network::packets::STATE_RUNNING;
+use network::packets::STATE_WON_PLAYER_1;
+use network::packets::STATE_WON_PLAYER_2;
+
 
 const RACKET_SPEED: i16 = 8;
 
@@ -26,7 +30,7 @@ pub fn calculate_physics(
     let mut touches_racket_under_side: bool = false;
     let mut in_goal: bool = false;
 
-    if server_gamestate.state != 0 {
+    if server_gamestate.state != STATE_RUNNING {
         return;
     }
 
@@ -108,13 +112,13 @@ pub fn calculate_physics(
         if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
             if server_gamestate.score[1] >= 9 {
-                server_gamestate.state = 255;
+                server_gamestate.state = STATE_WON_PLAYER_2;
             }
         }
         if x_pos_new >= width - 1 - ball_radius {
             server_gamestate.score[0] += 1;
             if server_gamestate.score[0] >= 9 {
-                server_gamestate.state = 254;
+                server_gamestate.state = STATE_WON_PLAYER_1;
             }
         }
         ball.reset();

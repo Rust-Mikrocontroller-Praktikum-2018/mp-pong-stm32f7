@@ -5,9 +5,9 @@ use racket::RACKET_WIDTH;
 const BALL_MAX_SPEED: i16 = 20;
 const BALL_MIN_SPEED: i16 = 10;
 
-const STATE_RUNNING: u8 = 0;
-const STATE_WON_PLAYER_1: u8 = 100;
-const STATE_WON_PLAYER_2: u8 = 100;
+pub const STATE_RUNNING: u8 = 0;
+pub const STATE_WON_PLAYER_1: u8 = 100;
+pub const STATE_WON_PLAYER_2: u8 = 100;
 
 #[derive(Debug, Copy, Clone)]
 pub struct GamestatePacket {
@@ -112,7 +112,7 @@ impl Serializable for GamestatePacket {
         index += BallPacket::len();
         let score_player1 = input[index];
         let score_player2 = input[index + 1];
-        let state = input[index + 1];
+        let state = input[index + 2];
 
         GamestatePacket {
             rackets: [racket1, racket2],

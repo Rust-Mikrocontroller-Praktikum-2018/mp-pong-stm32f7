@@ -1,7 +1,5 @@
 #!/bin/bash
 
-env
-
 set -e
 
 echo "Please run 'st-util' in another terminal window (you might need sudo)"

@@ -9,6 +9,7 @@ use lcd::TextWriter;
 use network::{Client, EthClient, EthServer, GamestatePacket, InputPacket, Network, Server};
 use physics;
 use racket;
+use network::packets::STATE_WON_PLAYER_1;
 
 pub enum GameState {
     Splash,
@@ -44,7 +45,7 @@ pub fn game_loop_local(
     handle_local_calculations(local_gamestate, local_input_1, local_input_2);
 
     // handle input
-    if local_gamestate.state >= 254 {
+    if local_gamestate.state >= STATE_WON_PLAYER_1 {
         let touch = input.handle_menu();
         if touch.is_down && !touch.any_touch_last_frame {
             *local_gamestate = GamestatePacket::new();
@@ -97,7 +98,8 @@ pub fn game_loop_network(
         handle_network_client(client, network, local_gamestate, local_input_1);
     }
 
-    if is_server && local_gamestate.state >= 254 {
+    if is_server && local_gamestate.state >= STATE_WON_PLAYER_1
+     {
         let touch = input.handle_menu();
         if touch.is_down && !touch.any_touch_last_frame {
             *local_gamestate = GamestatePacket::new();

@@ -6,6 +6,10 @@ use lcd::TextWriter;
 use network;
 use racket;
 use PADDING;
+use network::packets::STATE_RUNNING;
+use network::packets::STATE_WON_PLAYER_1;
+use network::packets::STATE_WON_PLAYER_2;
+
 
 const SCORE_1_X: usize = 480 / 2 - 10 - 15;
 const SCORE_1_Y: usize = 272 - 50;
@@ -244,13 +248,13 @@ pub fn update_graphics(
     total_time: usize,
     _delta_time: usize,
 ) {
-    if gamestate.state != 0 {
+    if gamestate.state != STATE_RUNNING {
         if cache.last_state != gamestate.state {
-            if gamestate.state == 254 {
+            if gamestate.state == STATE_WON_PLAYER_1 {
                 menu_font.write_at(framebuffer, "Player 1 wins", PADDING, PADDING);
-            } else if gamestate.state == 255 {
+            } else if gamestate.state == STATE_WON_PLAYER_2 {
                 menu_font.write_at(framebuffer, "Player 2 wins", PADDING, PADDING);
-            }
+            } 
             cache.last_state = gamestate.state;
         }
     } else if cache.last_state != 0 {

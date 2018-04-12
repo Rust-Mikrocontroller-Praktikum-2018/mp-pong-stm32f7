@@ -244,8 +244,8 @@ fn main(hw: board::Hardware) -> ! {
                     }
                     // calculate times
                     let now = system_clock::ticks();
-                    let total_time = now - start_time;
-                    let delta_time = last_time - now;
+                    let total_time = (now as i32 - start_time as i32) as usize;
+                    let delta_time = (last_time as i32 - now as i32) as usize;
                     last_time = now;
 
                     let just_entered_state = !(previous_gamestate == discriminant(&gamestate));
@@ -331,25 +331,34 @@ fn main(hw: board::Hardware) -> ! {
                                     } else {
                                         "Waiting for server..."
                                     },
-                                    0,
-                                    50,
+                                    PADDING,
+                                    60,
                                 );
                             }
 
                             if is_server {
-                                // server.send_whoami(&mut network);
-                                if server.is_client_connected(&mut network) {
+                                let result = if server.is_client_connected(&mut network) {
+                                    // server.send_whoami(&mut network);
                                     GameState::GameRunningNetwork(network)
                                 } else {
+                                    // server.send_whoami(&mut network);
                                     GameState::WaitForPartner(network)
-                                }
+                                };
+                                
+                                result 
                             } else {
-                                client.send_whoami(&mut network);
-                                if client.is_server_connected(&mut network) {
+                                /*client_whoami_time += delta_time;
+                                if client_whoami_time > 200 { // prevent output buffer exhaustion
+                                    client_whoami_time = 0;*/
+                                    client.send_whoami(&mut network);
+                                // }
+                                let result = if client.is_server_connected(&mut network) {
                                     GameState::GameRunningNetwork(network)
                                 } else {
                                     GameState::WaitForPartner(network)
-                                }
+                                };
+                                
+                                result
                             }
                         }
                         GameState::GameRunningLocal => {
