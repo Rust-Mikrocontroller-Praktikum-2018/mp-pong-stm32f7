@@ -76,13 +76,13 @@ pub fn calculate_physics(
         // if ball touches goal increase score and reset ball position
         if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
-            if server_gamestate.score[1] > 9 {
+            if server_gamestate.score[1] >= 9 {
                 server_gamestate.state = 254;
             }
         }
         if x_pos_new >= 479 - ball_radius {
             server_gamestate.score[0] += 1;
-            if server_gamestate.score[0] > 9 {
+            if server_gamestate.score[0] >= 9 {
                 server_gamestate.state = 255;
             }
         }

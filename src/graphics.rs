@@ -7,9 +7,9 @@ use network;
 use racket;
 
 const SCORE_1_X: usize = 480 / 2 - 10 - 15;
-const SCORE_1_Y: usize = 272 / 2 - 20;
+const SCORE_1_Y: usize = 272 - 50;
 const SCORE_2_X: usize = 480 / 2 + 10;
-const SCORE_2_Y: usize = 272 / 2 - 20;
+const SCORE_2_Y: usize = 272 - 50;
 const SCORE_REDRAW_TIME: usize = 800;
 
 pub fn draw_rectangle(
@@ -253,16 +253,11 @@ pub fn update_graphics(
             }
             cache.last_state = gamestate.state;
         }
-
-        return;
-    }
-
-    if cache.last_state != 0 {
+    } else if cache.last_state != 0 {
         cache.last_state = 0;
         framebuffer.clear();
         draw_initial(framebuffer, rackets, ball);
         // TODO: redraw
-        return;
     }
 
     //send gamestate to ball
