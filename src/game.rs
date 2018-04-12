@@ -33,6 +33,8 @@ pub fn game_loop_local(
     local_gamestate: &mut GamestatePacket,
     menu_font: &mut TextWriter,
     cache: &mut GraphicsCache,
+    total_time: usize,
+    delta_time: usize,
 ) {
     if just_entered_state {
         framebuffer.clear();
@@ -52,6 +54,8 @@ pub fn game_loop_local(
         ball,
         menu_font,
         cache,
+        total_time,
+        delta_time,
     );
 
     graphics::draw_fps(framebuffer, fps);
@@ -72,6 +76,8 @@ pub fn game_loop_network(
     network: &mut Network,
     menu_font: &mut TextWriter,
     cache: &mut GraphicsCache,
+    total_time: usize,
+    delta_time: usize,
 ) {
     if just_entered_state {
         framebuffer.clear();
@@ -95,6 +101,8 @@ pub fn game_loop_network(
         ball,
         menu_font,
         cache,
+        total_time,
+        delta_time,
     );
 
     graphics::draw_fps(framebuffer, fps);

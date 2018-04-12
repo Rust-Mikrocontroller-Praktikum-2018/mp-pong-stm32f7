@@ -1,8 +1,10 @@
 use ball;
+use ball::Ball;
 use fps;
 use lcd;
 use lcd::Framebuffer;
 use lcd::TextWriter;
+use lcd::WIDTH;
 use network;
 use racket;
 
@@ -234,6 +236,8 @@ pub fn update_graphics(
     ball: &mut ball::Ball,
     menu_font: &mut TextWriter,
     cache: &mut GraphicsCache,
+    total_time: usize,
+    delta_time: usize,
 ) {
     // TODO: implement
     // send gamestate to racket to let racket move
@@ -244,7 +248,14 @@ pub fn update_graphics(
 
     ball.update_ball_pos(framebuffer, gamestate.ball);
 
-    if gamestate.score[0] != cache.score[0] {
+    let mut redraw_score_1 = gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + 1000;
+    let mut redraw_score_2 = gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + 1000;
+
+    if redraw_score_1 || redraw_score_2 {
+        cache.last_score_redraw = total_time;
+    }
+
+    if redraw_score_1 {
         cache.score[0] = gamestate.score[0];
         menu_font.write_at(
             framebuffer,
@@ -253,7 +264,7 @@ pub fn update_graphics(
             272 / 2 - 20,
         );
     }
-    if gamestate.score[1] != cache.score[1] {
+    if redraw_score_2 {
         cache.score[1] = gamestate.score[1];
         menu_font.write_at(
             framebuffer,
@@ -278,10 +289,14 @@ pub fn draw_guidelines(framebuffer: &mut Framebuffer) {
 
 pub struct GraphicsCache {
     score: [u8; 2],
+    last_score_redraw: usize,
 }
 
 impl GraphicsCache {
     pub fn new() -> GraphicsCache {
-        GraphicsCache { score: [99, 99] }
+        GraphicsCache {
+            score: [99, 99],
+            last_score_redraw: 0,
+        }
     }
 }
