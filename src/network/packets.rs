@@ -5,17 +5,16 @@ use racket::RACKET_WIDTH;
 const BALL_MAX_SPEED: i16 = 20;
 const BALL_MIN_SPEED: i16 = 10;
 
+const STATE_RUNNING: u8 = 0;
+const STATE_WON_PLAYER_1: u8 = 100;
+const STATE_WON_PLAYER_2: u8 = 100;
+
 #[derive(Debug, Copy, Clone)]
 pub struct GamestatePacket {
     pub rackets: [RacketPacket; 2],
     pub ball: BallPacket,
     pub score: [u8; 2],
-    pub state: u8, /*
-    0: running
-
-    254: left player won
-    255: right player won
-    */
+    pub state: u8,
 }
 #[derive(Debug, Copy, Clone)]
 pub struct RacketPacket {
@@ -226,9 +225,9 @@ fn merge(upper: u8, lower: u8) -> i16 {
     i16::from(upper) << 8 | i16::from(lower)
 }
 fn random_vel() -> [i16; 2] {
-    let mut random_x_vel=5;
-    let mut random_y_vel=5;
-    //TODO generate random velocity between BALL_MIN_SPEED and BALL_MAX_SPEED
-    
+    let mut random_x_vel = 5;
+    let mut random_y_vel = 5;
+    // TODO generate random velocity between BALL_MIN_SPEED and BALL_MAX_SPEED
+
     [random_x_vel, random_y_vel]
 }

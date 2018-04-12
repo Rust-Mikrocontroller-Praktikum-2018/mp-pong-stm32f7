@@ -71,8 +71,7 @@ pub fn choose_only_local(
 
     let touch = input.handle_menu();
 
-    if touch.is_down && !touch.any_touch_last_frame 
-    && touch.x < lcd::WIDTH as u16 / 2 {
+    if touch.is_down && !touch.any_touch_last_frame && touch.x < lcd::WIDTH as u16 / 2 {
         return GameState::GameRunningLocal;
     }
 

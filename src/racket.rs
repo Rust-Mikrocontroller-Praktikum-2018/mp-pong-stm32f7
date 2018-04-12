@@ -1,8 +1,8 @@
-use BGCOLOR;
 use core::cmp::max;
 use core::cmp::min;
 use graphics;
 use lcd;
+use BGCOLOR;
 
 // general Racket Properties
 pub const RACKET_WIDTH: u16 = 10;

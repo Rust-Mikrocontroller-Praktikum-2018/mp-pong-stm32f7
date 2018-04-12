@@ -13,7 +13,6 @@ extern crate stm32f7_discovery as stm32f7;
 extern crate alloc;
 extern crate smoltcp;
 
-
 mod ball;
 mod fps;
 mod game;
@@ -29,14 +28,14 @@ use core::mem::discriminant;
 use core::ptr;
 use embedded::interfaces::gpio::Gpio;
 use game::GameState;
+use graphics::GraphicsCache;
 use lcd::Framebuffer;
 use lcd::FramebufferL8;
 use lcd::TextWriter;
 use network::{Client, Server};
 use smoltcp::wire::{EthernetAddress, Ipv4Address};
 use stm32f7::lcd::Color;
-use stm32f7::{board, embedded, ethernet, interrupts, sdram, system_clock, touch, i2c};
-use graphics::GraphicsCache;
+use stm32f7::{board, embedded, ethernet, i2c, interrupts, sdram, system_clock, touch};
 
 const USE_DOUBLE_BUFFER: bool = true;
 const ENABLE_FPS_OUTPUT: bool = false;
@@ -117,17 +116,7 @@ fn main(hw: board::Hardware) -> ! {
     } = hw;
 
     let mut gpio = Gpio::new(
-        gpio_a,
-        gpio_b,
-        gpio_c,
-        gpio_d,
-        gpio_e,
-        gpio_f,
-        gpio_g,
-        gpio_h,
-        gpio_i,
-        gpio_j,
-        gpio_k,
+        gpio_a, gpio_b, gpio_c, gpio_d, gpio_e, gpio_f, gpio_g, gpio_h, gpio_i, gpio_j, gpio_k,
     );
 
     system_clock::init(rcc, pwr, flash);
@@ -193,8 +182,6 @@ fn main(hw: board::Hardware) -> ! {
     let mut gamestate = GameState::Splash;
     let mut previous_gamestate = core::mem::discriminant(&gamestate); // Get the descriminant to be able to compare this
 
-
-
     interrupts::scope(
         nvic,
         |_| {},
@@ -241,7 +228,7 @@ fn main(hw: board::Hardware) -> ! {
 
             let mut input = input::Input::new(i2c_3);
             let mut cache = GraphicsCache::new();
-            
+
             let start_time = system_clock::ticks();
             let mut last_time = start_time;
 
@@ -406,7 +393,7 @@ fn main(hw: board::Hardware) -> ! {
                         }
                     };
 
-                    //graphics::draw_guidelines(&mut framebuffer);
+                    // graphics::draw_guidelines(&mut framebuffer);
                     graphics::draw_fps(&mut framebuffer, &fps);
                     // end of frame
                     fps.count_frame();
@@ -416,5 +403,5 @@ fn main(hw: board::Hardware) -> ! {
                 }
             }
         },
-    )   
+    )
 }

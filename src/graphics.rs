@@ -244,7 +244,6 @@ pub fn update_graphics(
     total_time: usize,
     _delta_time: usize,
 ) {
-
     if gamestate.state != 0 {
         if cache.last_state != gamestate.state {
             if gamestate.state == 254 {
@@ -262,17 +261,17 @@ pub fn update_graphics(
         // TODO: redraw
     }
 
-    //send gamestate to ball
+    // send gamestate to ball
     ball.update_ball_pos(framebuffer, gamestate.ball);
     // send gamestate to racket to let racket move
     for id in 0..2 {
         rackets[id].update_racket_pos(framebuffer, gamestate.rackets[id].y as u16);
     }
-    
-    let redraw_score_1 =
-        gamestate.score[0] != cache.score[0] || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
-    let redraw_score_2 =
-        gamestate.score[1] != cache.score[1] || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
+
+    let redraw_score_1 = gamestate.score[0] != cache.score[0]
+        || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
+    let redraw_score_2 = gamestate.score[1] != cache.score[1]
+        || total_time > cache.last_score_redraw + SCORE_REDRAW_TIME;
 
     if redraw_score_1 || redraw_score_2 {
         cache.last_score_redraw = total_time;

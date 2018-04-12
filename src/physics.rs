@@ -26,12 +26,9 @@ pub fn calculate_physics(
     let mut touches_racket_under_side: bool = false;
     let mut in_goal: bool = false;
 
-    
-
     if server_gamestate.state != 0 {
         return;
     }
-
 
     // Racket Positions
     // for each player check whether to move up, down or not at all
@@ -57,7 +54,7 @@ pub fn calculate_physics(
             }
             server_gamestate.rackets[i].y = racket_pos;
         }
-        //Ball touches racket
+        // Ball touches racket
         let rect_ball = Rectangle::new(x_pos_new, y_pos_new, ball_radius, 0);
         let rect_racket = Rectangle::new(
             server_gamestate.rackets[i].x,
@@ -67,32 +64,32 @@ pub fn calculate_physics(
         );
 
         if overlap_test(rect_ball, rect_racket) {
-            //ball touches side of racket
+            // ball touches side of racket
             if ball.y + ball_radius < racket_pos_old - racket_height {
                 touches_racket_under_side = true;
             } else if ball.y - ball_radius > racket_pos_old + racket_height {
                 touches_racket_upper_side = true;
             } else {
-                //ball touches face of racket
+                // ball touches face of racket
                 touches_racket_face = true;
             }
         }
     }
-    //move Ball
-    //if ball touches top or bottom wall
+    // move Ball
+    // if ball touches top or bottom wall
     if y_pos_new < ball_radius || y_pos_new > height - 1 - ball_radius {
         ball.y_vel *= -1;
     }
-    //if ball touches racket side
+    // if ball touches racket side
     if touches_racket_upper_side {
         ball.y_vel = -abs(ball.y_vel);
     } else if touches_racket_under_side {
         ball.y_vel = abs(ball.y_vel);
     }
-    //new position=old position+velocity
+    // new position=old position+velocity
     ball.y += ball.y_vel;
 
-    //check for goals
+    // check for goals
     if x_pos_new <= ball_radius || x_pos_new >= width - 1 - ball_radius {
         in_goal = true;
     }
@@ -104,7 +101,7 @@ pub fn calculate_physics(
             ball.x_vel = abs(ball.x_vel);
         }
     }
-    //new position=old position+velocity
+    // new position=old position+velocity
     ball.x += ball.x_vel;
     // if ball touches goal increase score and reset ball position
     if in_goal {
