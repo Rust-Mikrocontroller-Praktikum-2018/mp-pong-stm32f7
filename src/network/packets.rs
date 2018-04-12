@@ -217,16 +217,9 @@ fn merge(upper: u8, lower: u8) -> i16 {
     i16::from(upper) << 8 | i16::from(lower)
 }
 fn random_vel() -> [i16; 2] {
-    let mut random_x_vel;
-    let mut random_y_vel;
-    let mut random_ball_vel_square;
-
-    while {
-        random_x_vel = ticks() as i16;
-        random_y_vel = ticks() as i16;
-        random_ball_vel_square = random_x_vel * random_x_vel + random_y_vel * random_y_vel;
-        (random_ball_vel_square > BALL_MAX_SPEED * BALL_MAX_SPEED)
-            || (random_ball_vel_square < BALL_MIN_SPEED * BALL_MIN_SPEED)
-    } {}
+    let mut random_x_vel=5;
+    let mut random_y_vel=5;
+    //TODO generate random velocity between BALL_MIN_SPEED and BALL_MAX_SPEED
+    
     [random_x_vel, random_y_vel]
 }

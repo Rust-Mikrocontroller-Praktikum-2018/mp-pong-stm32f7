@@ -13,18 +13,11 @@ pub fn calculate_physics(
     let racket_height = RACKET_HEIGHT as i16;
     let ball_radius = BALL_RADIUS as i16;
     let ball: &mut network::BallPacket = &mut server_gamestate.ball;
+    let x_pos_new = ball.x + ball.x_vel;
+    let y_pos_new = ball.y + ball.y_vel;
+
     let mut touches_racket_face: bool = false;
-    
-    //move Ball
-    //new position=old position+velocity
-    //check for borders
-    if ball.x + ball.x_vel > racket_width && ball.x + ball.x_vel < 479 - racket_width {
-        ball.x += ball.x_vel;
-    }
-    //else if{}
-    if ball.y + ball.y_vel > 0 && ball.y + ball.y_vel < 271 {
-        ball.y += ball.y_vel;
-    }
+
     // Racket Positions
     // for each player check whether to move up, down or not at all
     for i in 0..2 {
@@ -50,38 +43,63 @@ pub fn calculate_physics(
             server_gamestate.rackets[i].y = racket_pos;
         }
         //Ball touches racket
-        // ball touches face of left racket
-        if ball.x <= ball_radius + server_gamestate.rackets[i].x + racket_width
-            && ball.y >= server_gamestate.rackets[i].y - racket_height - ball_radius / 2
-            && ball.y <= server_gamestate.rackets[i].y + racket_height + ball_radius / 2
-        {
+        let rect_ball = Rectangle::new(x_pos_new, y_pos_new, ball_radius, ball_radius/2);
+        let rect_racket = Rectangle::new(
+            server_gamestate.rackets[i].x,
+            server_gamestate.rackets[i].y,
+            racket_width,
+            racket_height,
+        );
+        //ball touches face of left racket
+
+        if overlap_test(rect_ball, rect_racket) {
             touches_racket_face = true;
         }
     }
-    // TODO Ball Position
- 
+    //move Ball
+    //if ball touches top or bottom wall
+    if y_pos_new < ball_radius || y_pos_new > 271 - ball_radius {
+        ball.y_vel *= -1;
+    } else {
+        //new position=old position+velocity
+        ball.y += ball.y_vel;
+    }
     // if ball touches racket face invert x_vel
-    if touches_racket_face{
+    if touches_racket_face {
         ball.x_vel *= -1;
     }
-    
-    // if ball touches top or bottom wall invert y_vel
-    if ball.y <= ball_radius || ball.y >= 271 - ball_radius {
-        ball.y_vel *= -1;
-    }
-    // if ball touches goal increase score and reset ball position
-    if ball.x <= ball_radius || ball.x >= 479 {
-        if ball.x <= ball_radius {
-            server_gamestate.score[0] += 1;
-        }
-        if ball.x >= 479 {
+    //check for goals
+    else if x_pos_new < ball_radius || x_pos_new > 479 - ball_radius {
+        // if ball touches goal increase score and reset ball position
+        if x_pos_new <= ball_radius {
             server_gamestate.score[1] += 1;
+        }
+        if x_pos_new >= 479 - ball_radius {
+            server_gamestate.score[0] += 1;
         }
         ball.reset();
     }
-    
+    //new position=old position+velocity
+    ball.x += ball.x_vel;
 }
-/*pub fn abs(value:i16)->i16{
-    if value<0{-value}
-    else {value}
-}*/
+fn overlap_test(rectangle1: Rectangle, rectangle2: Rectangle) -> bool {
+    !(rectangle2.right < rectangle1.left || rectangle2.left > rectangle1.right
+        || rectangle2.top > rectangle1.bottom || rectangle2.bottom < rectangle1.top)
+}
+
+struct Rectangle {
+    left: i16,
+    right: i16,
+    top: i16,
+    bottom: i16,
+}
+impl Rectangle {
+    pub fn new(centre_x: i16, centre_y: i16, width: i16, height: i16) -> Rectangle {
+        Rectangle {
+            left: centre_x - width,
+            right: centre_x + width,
+            top: centre_y - height,
+            bottom: centre_y + height,
+        }
+    }
+}
