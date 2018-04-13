@@ -89,11 +89,11 @@ pub fn calculate_physics(
                     } else {
                         ball.x_vel -= 1;
                     }
-                } /*else if ball.y_vel > 0 {
+                } else if ball.y_vel > 0 {
                     ball.y_vel += 1;
                 } else {
                     ball.y_vel -= 1;
-                }*/
+                }
             }
         }
     }
